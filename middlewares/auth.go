@@ -12,13 +12,12 @@ import (
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Do stuff here
 		log.Println(r.RequestURI)
 
-		notAuth := []string{"/api/user/login"} //Список эндпоинтов, для которых не требуется авторизация
-		requestPath := r.URL.Path //текущий путь запроса
+		notAuth := []string{"/api/users/login", "/api/users/register", "/api/clear"}
+		requestPath := r.URL.Path
 
-		//проверяем, не требует ли запрос аутентификации, обслуживаем запрос, если он не нужен
+		// check if path doesn't require authorization
 		for _, value := range notAuth {
 
 			if value == requestPath {
@@ -27,32 +26,37 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			}
 		}
 
-		tokenHeader := r.Header.Get("Authorization") //Получение токена
+		tokenHeader := r.Header.Get("Authorization") // get token from HTTP header
 
-		if tokenHeader == "" { //Токен отсутствует, возвращаем  403 http-код Unauthorized
+		if tokenHeader == "" {
 			h.ThrowErrorWithStatus(w, h.TokenMissing, http.StatusForbidden)
 			return
 		}
 
-		splitted := strings.Split(tokenHeader, " ") //Токен обычно поставляется в формате `Bearer {token-body}`, мы проверяем, соответствует ли полученный токен этому требованию
+
+		splitted := strings.Split(tokenHeader, " ")
 		if len(splitted) != 2 {
 			h.ThrowErrorWithStatus(w, h.TokenInvalid, http.StatusForbidden)
 			return
 		}
 
-		tokenPart := splitted[1] //Получаем вторую часть токена
+		// obtain JWT token
+		tokenPart := splitted[1]
 		tk := h.AuthToken{}
 
+		// parse JWT token
 		token, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
 			return []byte(os.Getenv("token_password")), nil
 		})
 
-		if err != nil { //Неправильный токен, как правило, возвращает 403 http-код
+		// cannot parse JWT token
+		if err != nil {
 			h.ThrowErrorWithStatus(w, h.TokenMalformed, http.StatusForbidden)
 			return
 		}
 
-		if !token.Valid { //токен недействителен, возможно, не подписан на этом сервере
+		// token is not valid
+		if !token.Valid {
 			h.ThrowErrorWithStatus(w, h.TokenInvalid, http.StatusForbidden)
 			return
 		}

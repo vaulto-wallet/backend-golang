@@ -62,6 +62,10 @@ type appBoolResult struct {
 	Result bool `json:"result"`
 }
 
+type appStringResult struct {
+	Result string `json:"result"`
+}
+
 
 func ThrowError(w http.ResponseWriter, e Error)  {
 	w.Header().Add("Content-Type", "application/json")
@@ -74,9 +78,12 @@ func ThrowErrorWithStatus(w http.ResponseWriter, e Error, s int)  {
 	json.NewEncoder(w).Encode(appError{e.String() , int(e), e.Text()  })
 }
 
-
-func ReturnSuccess(w http.ResponseWriter, e Error)  {
+func ReturnBool(w http.ResponseWriter, r bool)  {
 	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(appBoolResult{ true })
+	json.NewEncoder(w).Encode(appBoolResult{ r })
 }
 
+func ReturnString(w http.ResponseWriter, r string)  {
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(appStringResult{ r })
+}

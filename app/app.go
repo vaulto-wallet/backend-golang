@@ -57,8 +57,10 @@ func (a *App) Run(host string) {
 }
 
 func (a *App) setRouters() {
+	a.Get("/api/clear", a.Clear)
 	a.Post("/api/users/login", a.Login)
 	a.Post("/api/users/register", a.Register)
+	a.Post("/api/account", a.CreateAccount)
 }
 
 func (a *App) Login(w http.ResponseWriter, r *http.Request) {
@@ -66,4 +68,12 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) Register(w http.ResponseWriter, r *http.Request) {
 	h.UserRegister(a.DB, w, r)
+}
+
+func (a *App) CreateAccount(w http.ResponseWriter, r *http.Request) {
+	h.CreateAccount(a.DB, w, r)
+}
+
+func (a *App) Clear(w http.ResponseWriter, r *http.Request) {
+	h.Clear(a.DB, w, r)
 }

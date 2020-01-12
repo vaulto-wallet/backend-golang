@@ -11,10 +11,10 @@ type Seed struct {
 type PrivateKeyType int
 
 const (
-	Unknown = 0
-	Root = 1
-	Single = 2
-	Multi = 3
+	PrivateKeyTypeUnknown = 0
+	PrivateKeyTypeRoot = 1
+	PrivateKeyTypeSingle = 2
+	PrivateKeyTypeMulti = 3
 )
 
 
