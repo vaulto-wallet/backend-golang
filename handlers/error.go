@@ -23,7 +23,7 @@ const (
 )
 
 func (error_code Error) String() string {
-	error_text  := [...]string{
+	error_text := [...]string{
 		"SUCCESS",
 		"BAD_REQUEST",
 		"NO_USER",
@@ -38,7 +38,7 @@ func (error_code Error) String() string {
 }
 
 func (error_code Error) Text() string {
-	error_text  := [...]string{
+	error_text := [...]string{
 		"Success",
 		"Bad request",
 		"No such user",
@@ -51,11 +51,10 @@ func (error_code Error) Text() string {
 	return error_text[error_code]
 }
 
-
 type appError struct {
 	Error string `json:"error"`
-	Code int `json:"code"`
-	Text string `json:"text"`
+	Code  int    `json:"code"`
+	Text  string `json:"text"`
 }
 
 type appBoolResult struct {
@@ -66,24 +65,28 @@ type appStringResult struct {
 	Result string `json:"result"`
 }
 
-
-func ThrowError(w http.ResponseWriter, e Error)  {
-	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(appError{e.String() , int(e), e.Text()  })
+type appJsonResult struct {
+	Result interface{} `json:"result"`
 }
 
-func ThrowErrorWithStatus(w http.ResponseWriter, e Error, s int)  {
+func ReturnError(w http.ResponseWriter, e Error) {
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(appError{e.String(), int(e), e.Text()})
+}
+
+func ReturnErrorWithStatus(w http.ResponseWriter, e Error, s int) {
 	w.WriteHeader(s)
 	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(appError{e.String() , int(e), e.Text()  })
+	json.NewEncoder(w).Encode(appError{e.String(), int(e), e.Text()})
 }
 
-func ReturnBool(w http.ResponseWriter, r bool)  {
+func ReturnErrorWithStatusString(w http.ResponseWriter, e Error, s int, t string) {
+	w.WriteHeader(s)
 	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(appBoolResult{ r })
+	json.NewEncoder(w).Encode(appError{e.String(), int(e), t})
 }
 
-func ReturnString(w http.ResponseWriter, r string)  {
+func ReturnResult(w http.ResponseWriter, r interface{}) {
 	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(appStringResult{ r })
+	json.NewEncoder(w).Encode(appJsonResult{r})
 }

@@ -8,9 +8,9 @@ import (
 type Address struct {
 	gorm.Model
 	Address string
-	Addon string
-	PrivateKey PrivateKey
-	Type int
+	Addon   string
+	Wallet  Wallet
+	Type    int
 	Balance big.Int
-	N int
+	N       int
 }

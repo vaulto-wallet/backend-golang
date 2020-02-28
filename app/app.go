@@ -61,6 +61,13 @@ func (a *App) setRouters() {
 	a.Post("/api/users/login", a.Login)
 	a.Post("/api/users/register", a.Register)
 	a.Post("/api/account", a.CreateAccount)
+	a.Post("/api/seed", a.CreateSeed)
+	a.Get("/api/seed", a.GetSeeds)
+	a.Post("/api/wallets", a.CreateWallet)
+	a.Get("/api/wallets", a.GetWallets)
+	a.Post("/api/assets", a.CreateAsset)
+	a.Get("/api/assets", a.GetAssets)
+
 }
 
 func (a *App) Login(w http.ResponseWriter, r *http.Request) {
@@ -76,4 +83,31 @@ func (a *App) CreateAccount(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) Clear(w http.ResponseWriter, r *http.Request) {
 	h.Clear(a.DB, w, r)
+}
+
+//Assets
+func (a *App) CreateAsset(w http.ResponseWriter, r *http.Request) {
+	h.CreateAsset(a.DB, w, r)
+}
+
+func (a *App) GetAssets(w http.ResponseWriter, r *http.Request) {
+	h.GetAssets(a.DB, w, r)
+}
+
+// Seeds
+func (a *App) CreateSeed(w http.ResponseWriter, r *http.Request) {
+	h.CreateSeed(a.DB, w, r)
+}
+
+func (a *App) GetSeeds(w http.ResponseWriter, r *http.Request) {
+	h.GetSeeds(a.DB, w, r)
+}
+
+// Wallets
+func (a *App) CreateWallet(w http.ResponseWriter, r *http.Request) {
+	h.CreateWallet(a.DB, w, r)
+}
+
+func (a *App) GetWallets(w http.ResponseWriter, r *http.Request) {
+	h.GetWallets(a.DB, w, r)
 }

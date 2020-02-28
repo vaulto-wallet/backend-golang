@@ -1,13 +1,12 @@
 package middlewares
 
 import (
+	h "../handlers"
 	"context"
 	"github.com/dgrijalva/jwt-go"
 	"log"
 	"net/http"
-	"os"
 	"strings"
-	h "../handlers"
 )
 
 func AuthMiddleware(next http.Handler) http.Handler {
@@ -29,14 +28,13 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		tokenHeader := r.Header.Get("Authorization") // get token from HTTP header
 
 		if tokenHeader == "" {
-			h.ThrowErrorWithStatus(w, h.TokenMissing, http.StatusForbidden)
+			h.ReturnErrorWithStatus(w, h.TokenMissing, http.StatusForbidden)
 			return
 		}
 
-
 		splitted := strings.Split(tokenHeader, " ")
 		if len(splitted) != 2 {
-			h.ThrowErrorWithStatus(w, h.TokenInvalid, http.StatusForbidden)
+			h.ReturnErrorWithStatus(w, h.TokenInvalid, http.StatusForbidden)
 			return
 		}
 
@@ -45,23 +43,24 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		tk := h.AuthToken{}
 
 		// parse JWT token
-		token, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("token_password")), nil
+		token, err := jwt.ParseWithClaims(tokenPart, &tk, func(token *jwt.Token) (interface{}, error) {
+			//return []byte(os.Getenv("token_password")), nil
+			return []byte("cryptosecret"), nil
 		})
 
 		// cannot parse JWT token
 		if err != nil {
-			h.ThrowErrorWithStatus(w, h.TokenMalformed, http.StatusForbidden)
+			h.ReturnErrorWithStatus(w, h.TokenMalformed, http.StatusForbidden)
 			return
 		}
 
 		// token is not valid
 		if !token.Valid {
-			h.ThrowErrorWithStatus(w, h.TokenInvalid, http.StatusForbidden)
+			h.ReturnErrorWithStatus(w, h.TokenInvalid, http.StatusForbidden)
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "user", tk.UserName)
+		ctx := context.WithValue(r.Context(), "user", tk.Username)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})

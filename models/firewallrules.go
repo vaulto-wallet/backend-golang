@@ -7,7 +7,7 @@ import (
 type FirewallAddress struct {
 	gorm.Model
 	Address string
-	Rule FirewallRule
+	Rule    FirewallRule
 }
 
 type FirewallRuleSignatures struct {
@@ -17,8 +17,8 @@ type FirewallRuleSignatures struct {
 
 type FirewallRule struct {
 	gorm.Model
-	PrivateKey PrivateKey
-	Amount float64
+	PrivateKey         Wallet
+	Amount             float64
 	SignaturesRequired int
-	Period int
+	Period             int
 }
