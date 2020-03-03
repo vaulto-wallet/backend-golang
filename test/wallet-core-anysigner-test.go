@@ -15,6 +15,7 @@ package main
 import "C"
 
 import (
+	"encoding/base64"
 	"fmt"
 )
 import "unsafe"
@@ -79,8 +80,16 @@ func main() {
 	address := C.TWHDWalletGetAddressForCoin(wallet, C.TWCoinTypeEthereum)
 	fmt.Println("<== ethereum address: ", TWStringGoString(address))
 
+	//message := "AQ=="
+	//message := "Mw=="
+	message := base64.StdEncoding.EncodeToString([]byte{3})
+
+	base64Text := make([]byte, base64.StdEncoding.DecodedLen(len(message)))
+	base64.StdEncoding.Decode(base64Text, []byte(message))
+	fmt.Println(message, base64Text)
+
 	tx := "{" +
-		"\"chainId\":\"" + "AQ==" +
+		"\"chainId\":\"" + "Mw==" +
 		"\",\"gasPrice\":\"" + "1pOkAA==" +
 		"\",\"gasLimit\":\"" + "Ugg=" +
 		"\",\"toAddress\":\"" + "0xC37054b3b48C3317082E7ba872d7753D13da4986" +
@@ -116,3 +125,6 @@ func main() {
 	fmt.Println(output.Output)
 
 }
+
+// f86a8084d693a40082520894c37054b3b48c3317082e7ba872d7753d13da4986870348bca5a160008026a09f9b20dcb30f7e4a3990d24a283dd1f31f7f3dfcebc9d952cd5699cf0c391e0aa06920439229e3c9ed3d1e8e3ff6dee5f8005691171ef4f960d0b696943c599171
+// f86b8084d693a40082520894c37054b3b48c3317082e7ba872d7753d13da4986870348bca5a1600080818aa0417a00a54bc2ea383802a8102b981e901589cf606de95facce55c463107db4c3a020509e38245f6908898ac03d598bf4b9ca61f683bab2b1aca69334984cfd8735

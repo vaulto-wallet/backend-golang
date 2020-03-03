@@ -341,6 +341,41 @@ func apiGetWallets(token string) (result interface{}) {
 	return response.Result
 }
 
+func apiCreateAddress(token string, wallet_id int, comment string) (result bool) {
+	buf := new(bytes.Buffer)
+	address := m.Address{
+		Comment:  comment,
+		WalletID: wallet_id,
+	}
+	json.NewEncoder(buf).Encode(address)
+	req, e := http.NewRequest("POST", url+"/address", buf)
+	if e != nil {
+		return false
+	}
+	req.Header.Add("Authorization", "Bearer "+token)
+	client := &http.Client{}
+	resp, e := client.Do(req)
+	if e != nil {
+		return false
+	}
+	defer resp.Body.Close()
+
+	bodytext, e := ioutil.ReadAll(resp.Body)
+	if e != nil {
+		return false
+	}
+
+	log.Print(string(bodytext))
+
+	var response ResponseBool
+	json.NewDecoder(strings.NewReader(string(bodytext))).Decode(&response)
+
+	if len(response.Error) > 0 {
+		return false
+	}
+	return true
+}
+
 func main() {
 	result := apiClear()
 	log.Println("Clear :", result)
@@ -368,5 +403,8 @@ func main() {
 
 	wallets := apiGetWallets(token)
 	log.Println("Get wallets : ", wallets)
+
+	address_result := apiCreateAddress(token, 1, "New address")
+	log.Println("Create address : ", address_result)
 
 }

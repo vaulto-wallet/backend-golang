@@ -14,6 +14,7 @@ type Error int
 const (
 	Success Error = iota
 	BadRequest
+	NotImplemented
 	NoUser
 	IncorrectPassword
 	AlreadyRegistered
@@ -26,6 +27,7 @@ func (error_code Error) String() string {
 	error_text := [...]string{
 		"SUCCESS",
 		"BAD_REQUEST",
+		"NOT_IMPLEMENTED",
 		"NO_USER",
 		"INCORRECT_PASSWORD",
 		"ALREADY_REGISTERED",
@@ -41,6 +43,7 @@ func (error_code Error) Text() string {
 	error_text := [...]string{
 		"Success",
 		"Bad request",
+		"Not implemented",
 		"No such user",
 		"Incorrect password",
 		"Already registered",

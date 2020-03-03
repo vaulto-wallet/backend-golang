@@ -5,17 +5,20 @@ import "github.com/jinzhu/gorm"
 type Seed struct {
 	gorm.Model
 	Name    string
-	Seed    string `json:"-"`
+	Seed    string
 	OwnerID int
-	Owner   User `json:"-"`
+	Owner   User
 }
+
+//Owner   User `gorm:"foreignkey:OwnerID, association_foreignkey:ID"`
 
 type Seeds []Seed
 
 func (s *Seed) Get(db *gorm.DB, seed_id int) (err interface{}) {
-	db.First(&s, "ID = ?", seed_id)
+	db.Set("gorm:auto_preload", true).Where("ID = ?", seed_id).First(&s)
 	if s.ID == 0 {
 		return "Seed not found"
 	}
 	return nil
+
 }

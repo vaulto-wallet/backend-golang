@@ -7,10 +7,7 @@ package main
 // #include <TrustWalletCore/TWData.h>
 // #include <TrustWalletCore/TWPrivateKey.h>
 // #include <TrustWalletCore/TWPublicKey.h>
-// #include <TrustWalletCore/TWEthereumProto.h>
-// #include <TrustWalletCore/TWEthereumSigner.h>
-// #include <TrustWalletCore/TWAnyProto.h>
-// #include <TrustWalletCore/TWAnySigner.h>
+// #include <TrustWalletCore/TWCoinType.h>
 import "C"
 
 import (
@@ -19,7 +16,6 @@ import (
 import "unsafe"
 import "encoding/hex"
 import "math/rand"
-import "../proto/Ethereum"
 
 // C.TWString -> Go string
 func TWStringGoString(s unsafe.Pointer) string {
@@ -115,18 +111,7 @@ func main() {
 
 	address := C.TWHDWalletGetAddressForCoin(wallet, C.TWCoinTypeBitcoin)
 	fmt.Println("<== bitcoin address: ", TWStringGoString(address))
-
-	ethinput := TW_Ethereum_Proto.SigningInput{}
-	ethinput.Amount = []byte{1, 2, 3}
-	ethinput.PrivateKey = TWDataGoBytes(key2Data)
-	fmt.Println(ethinput.String())
-
-	//w := proto.Marshal(ethinput.String())
-	//fmt.Println(w)
-
-	ethinput_c := TWDataCreateWithGoBytes(*(*[]byte)(unsafe.Pointer(&ethinput)))
-
-	ethout := C.TWEthereumSignerSign((C.TW_Ethereum_Proto_SigningInput)(ethinput_c))
-	fmt.Println(ethout)
+	address2 := C.TWCoinTypeDeriveAddress(C.TWCoinTypeBitcoin, key)
+	fmt.Println("<== bitcoin address2: ", TWStringGoString(address2))
 
 }

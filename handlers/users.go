@@ -82,9 +82,15 @@ func Clear(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	db.DropTableIfExists("users")
 	db.DropTableIfExists("seeds")
 	db.DropTableIfExists("wallets")
+	db.DropTableIfExists("orders")
+	db.DropTableIfExists("addresses")
 	db.AutoMigrate(&m.Asset{})
 	db.AutoMigrate(&m.User{})
-	db.AutoMigrate(&m.Seed{})
+	db.AutoMigrate(&m.Seed{}).AddForeignKey("owner", "users(id)", "RESTRICT", "RESTRICT")
 	db.AutoMigrate(&m.Wallet{})
+	db.AutoMigrate(&m.Address{})
+	db.AutoMigrate(&m.Order{})
+	//db.Model(&m.Seed{}).AddForeignKey("owner", "users(id)", "RESTRICT", "RESTRICT")
+
 	ReturnResult(w, true)
 }

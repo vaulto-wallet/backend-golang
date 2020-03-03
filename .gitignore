@@ -1,4 +1,5 @@
 .idea
 wallet-core
 test.db
+./wallet-core
 

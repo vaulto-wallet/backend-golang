@@ -5,9 +5,9 @@ import "github.com/jinzhu/gorm"
 type AssetType int
 
 const (
-	Unknown    = 0
-	AssetBase  = 1
-	AssetERC20 = 2
+	AssetUnknown = 0
+	AssetBase    = 1
+	AssetERC20   = 2
 )
 
 func (a AssetType) String() string {

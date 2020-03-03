@@ -16,9 +16,11 @@ type Wallet struct {
 	Name        string
 	NetworkType string
 	SeedID      int
+	Seed        Seed `json:"-"`
 	AssetID     int
-	Seed        Seed  `json:"-"`
 	Asset       Asset `json:"-"`
+	N           uint32
+	ChangeN     uint32
 }
 
 type Wallets []Wallet
