@@ -124,6 +124,20 @@ func main() {
 
 	fmt.Println(output.Output)
 
+	defer func() {
+		if x := recover(); x != nil {
+			fmt.Printf("Panic: %+v\n", x)
+		}
+	}()
+
+	go func() {
+		ethout2 := C.TWAnySignerSign((C.TW_Any_Proto_SigningInput)(TWDataCreateWithGoBytes([]byte{})))
+		fmt.Println("111", ethout2)
+	}()
+
+	ethout2 := C.TWAnySignerSign((C.TW_Any_Proto_SigningInput)(TWDataCreateWithGoBytes([]byte{})))
+	fmt.Println("111", ethout2)
+
 }
 
 // f86a8084d693a40082520894c37054b3b48c3317082e7ba872d7753d13da4986870348bca5a160008026a09f9b20dcb30f7e4a3990d24a283dd1f31f7f3dfcebc9d952cd5699cf0c391e0aa06920439229e3c9ed3d1e8e3ff6dee5f8005691171ef4f960d0b696943c599171

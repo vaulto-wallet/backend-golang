@@ -1,4 +1,4 @@
-package api
+package vaultoapi
 
 type LoginRequest struct {
 	Username string `json:"username"`
@@ -20,10 +20,14 @@ type SeedRequest struct {
 }
 
 type WalletRequest struct {
-	Name        string
-	NetworkType string
-	SeedID      int
-	AssetID     int
+	Name    string `json:"name,omitempty"`
+	SeedID  int    `json:"seed_id,omitempty"`
+	AssetID int    `json:"asset_id,omitempty"`
+}
+
+type AddressRequest struct {
+	Name     string `json:"name,omitempty"`
+	WalletID int    `json:"wallet_id,omitempty"`
 }
 
 type ResponseBool struct {

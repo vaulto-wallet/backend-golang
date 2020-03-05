@@ -2,4 +2,5 @@
 wallet-core
 test.db
 ./wallet-core
-
+/fetcher/
+/wallet-core/

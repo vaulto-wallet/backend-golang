@@ -2,6 +2,7 @@ package handlers
 
 import (
 	m "../models"
+	v "../vaultoapi"
 	"encoding/json"
 	"fmt"
 	"github.com/jinzhu/gorm"
@@ -17,7 +18,7 @@ func CreateWallet(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		ReturnError(w, Error(NoUser))
 		return
 	}
-	var r m.Wallet
+	var r v.WalletRequest
 	err := json.NewDecoder(req.Body).Decode(&r)
 
 	if err != nil {
@@ -47,11 +48,16 @@ func CreateWallet(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		r.Name = "New wallet"
 	}
 
-	if len(r.NetworkType) == 0 {
-		r.NetworkType = "main"
+	newWallet := m.Wallet{
+		Name:        r.Name,
+		NetworkType: "",
+		SeedID:      r.SeedID,
+		AssetID:     r.AssetID,
+		N:           0,
+		ChangeN:     0,
 	}
 
-	db.Create(&r)
+	db.Create(&newWallet)
 	ReturnResult(w, true)
 }
 
@@ -59,9 +65,9 @@ func GetWallets(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	username := req.Context().Value("user")
 	dbUser := m.User{}
 	db.First(&dbUser, "Username = ?", username)
+
 	var wallets m.Wallets
 
-	//db.Where("owner_id = ? ", dbUser.ID).Find(&wallets)
 	db.Find(&wallets)
 	res, err := json.Marshal(wallets)
 	if err != nil {
