@@ -24,10 +24,13 @@ func (a OrderStatus) String() string {
 type Order struct {
 	gorm.Model
 	Amount        float64
-	To            string
-	WalletID      int
-	SubmittedByID int
+	AddressTo     string
+	AssetID       uint
+	WalletID      uint
+	SubmittedByID uint
 	Comment       string
+	Tx            string
+	TxHash        string
 	Status        OrderStatus
 	Wallet        Wallet `json:"-"`
 	SubmittedBy   User   `json:"-"`

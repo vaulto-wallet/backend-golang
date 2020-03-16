@@ -15,9 +15,9 @@ type Wallet struct {
 	gorm.Model
 	Name        string
 	NetworkType string
-	SeedID      int
+	SeedID      uint
 	Seed        Seed `json:"-"`
-	AssetID     int
+	AssetID     uint
 	Asset       Asset `json:"-"`
 	N           uint32
 	ChangeN     uint32

@@ -14,7 +14,7 @@ type Seed struct {
 
 type Seeds []Seed
 
-func (s *Seed) Get(db *gorm.DB, seed_id int) (err interface{}) {
+func (s *Seed) Get(db *gorm.DB, seed_id uint) (err interface{}) {
 	db.Set("gorm:auto_preload", true).Where("ID = ?", seed_id).First(&s)
 	if s.ID == 0 {
 		return "Seed not found"

@@ -31,7 +31,7 @@ type Asset struct {
 
 type Assets []Asset
 
-func (a *Asset) Get(db *gorm.DB, asset_id int) (err interface{}) {
+func (a *Asset) Get(db *gorm.DB, asset_id uint) (err interface{}) {
 	db.First(&a, "ID = ?", asset_id)
 	if a.ID == 0 {
 		return "Asset not found"

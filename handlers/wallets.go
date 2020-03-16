@@ -5,6 +5,7 @@ import (
 	v "../vaultoapi"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	"net/http"
 )
@@ -26,20 +27,20 @@ func CreateWallet(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if r.SeedID == 0 || r.AssetID == 0 {
+	if r.SeedId == 0 || r.AssetId == 0 {
 		ReturnError(w, Error(BadRequest))
 		return
 	}
 
 	seed := &m.Seed{}
 
-	if err := seed.Get(db, r.SeedID); err != nil {
+	if err := seed.Get(db, r.SeedId); err != nil {
 		ReturnErrorWithStatusString(w, Error(BadRequest), 400, err.(string))
 		return
 	}
 
 	asset := &m.Asset{}
-	if err := asset.Get(db, r.AssetID); err != nil {
+	if err := asset.Get(db, r.AssetId); err != nil {
 		ReturnErrorWithStatusString(w, Error(BadRequest), 400, err.(string))
 		return
 	}
@@ -51,8 +52,8 @@ func CreateWallet(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	newWallet := m.Wallet{
 		Name:        r.Name,
 		NetworkType: "",
-		SeedID:      r.SeedID,
-		AssetID:     r.AssetID,
+		SeedID:      r.SeedId,
+		AssetID:     r.AssetId,
 		N:           0,
 		ChangeN:     0,
 	}
@@ -66,12 +67,43 @@ func GetWallets(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	dbUser := m.User{}
 	db.First(&dbUser, "Username = ?", username)
 
-	var wallets m.Wallets
+	var wallets v.WalletsResponse
 
-	db.Find(&wallets)
+	db.Table("wallets").
+		Select("wallets.id, wallets.seed_id, wallets.asset_id, assets.symbol").
+		Joins("JOIN assets ON assets.id = wallets.asset_id").
+		Find(&wallets)
+
 	res, err := json.Marshal(wallets)
 	if err != nil {
 		ReturnResult(w, wallets)
+		return
+	}
+
+	fmt.Println((string)(res))
+	ReturnResult(w, wallets)
+}
+
+func GetWalletsForAsset(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
+	username := req.Context().Value("user")
+	dbUser := m.User{}
+	db.First(&dbUser, "Username = ?", username)
+
+	vars := mux.Vars(req)
+
+	asset := vars["asset"]
+
+	var wallets v.WalletsResponse
+
+	db.Table("wallets").
+		Select("wallets.id, wallets.seed_id, wallets.asset_id, assets.symbol").
+		Joins("join assets on assets.id = wallets.asset_id").
+		Where("assets.symbol = ?", asset).
+		Find(&wallets)
+
+	res, err := json.Marshal(wallets)
+	if err != nil {
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, err.Error())
 		return
 	}
 

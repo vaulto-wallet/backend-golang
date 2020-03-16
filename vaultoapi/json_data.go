@@ -20,10 +20,29 @@ type SeedRequest struct {
 }
 
 type WalletRequest struct {
+	Id      int    `json:"id,omitempty"`
 	Name    string `json:"name,omitempty"`
-	SeedID  int    `json:"seed_id,omitempty"`
-	AssetID int    `json:"asset_id,omitempty"`
+	SeedId  uint   `json:"seed_id,omitempty"`
+	AssetId uint   `json:"asset_id,omitempty"`
+	Symbol  string `json:"asset_symbol,omitempty"`
 }
+
+type WalletsResponse []WalletRequest
+
+type OrderRequest struct {
+	Id        int     `json:"id,omitempty"`
+	AssetId   uint    `json:"asset_id,omitempty"`
+	Symbol    string  `json:"symbol"`
+	WalletId  uint    `json:"wallet_id,omitempty"`
+	AddressTo string  `json:"address_to,omitempty"`
+	Amount    float64 `json:"amount,omitempty"`
+	Comment   string  `json:"comment,omitempty"`
+	Status    int     `json:"status,omitempty"`
+	Tx        string  `json:"tx,omitempty"`
+	TxHash    string  `json:"tx_hash,omitempty"`
+}
+
+type OrdersResponse []OrderRequest
 
 type AddressRequest struct {
 	Name     string `json:"name,omitempty"`

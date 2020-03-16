@@ -2,6 +2,7 @@ package handlers
 
 import (
 	m "../models"
+	v "../vaultoapi"
 	"encoding/json"
 	"fmt"
 	"github.com/jinzhu/gorm"
@@ -17,7 +18,7 @@ func CreateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		ReturnError(w, Error(NoUser))
 		return
 	}
-	var r m.Order
+	var r v.OrderRequest
 	err := json.NewDecoder(req.Body).Decode(&r)
 
 	if err != nil {
@@ -25,12 +26,25 @@ func CreateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if r.WalletID == 0 {
-		ReturnError(w, Error(BadRequest))
-		return
+	if r.AssetId == 0 {
+		if len(r.Symbol) == 0 {
+			ReturnError(w, Error(BadRequest))
+			return
+		}
+		var asset m.Asset
+		db.Where("symbol = ?", r.Symbol).First(&asset)
+		r.AssetId = asset.ID
 	}
 
-	db.Create(&r)
+	db.Create(&m.Order{
+		Amount:        r.Amount,
+		AddressTo:     r.AddressTo,
+		AssetID:       r.AssetId,
+		WalletID:      r.WalletId,
+		SubmittedByID: dbUser.ID,
+		Comment:       r.Comment,
+		Status:        0,
+	})
 	ReturnResult(w, true)
 }
 
@@ -45,7 +59,7 @@ func UpdateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var r m.Order
+	var r v.OrderRequest
 	err := json.NewDecoder(req.Body).Decode(&r)
 
 	if err != nil {
@@ -53,10 +67,10 @@ func UpdateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	db.First(&dbOrder, "ID = ?", r.ID)
+	db.First(&dbOrder, r.Id)
 
-	if dbOrder.Status != r.Status {
-		dbOrder.Status = r.Status
+	if dbOrder.Status != (m.OrderStatus)(r.Status) {
+		dbOrder.Status = (m.OrderStatus)(r.Status)
 	}
 
 	if dbOrder.Comment != r.Comment && len(r.Comment) > 0 {
@@ -71,9 +85,9 @@ func GetOrders(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	username := req.Context().Value("user")
 	dbUser := m.User{}
 	db.First(&dbUser, "Username = ?", username)
-	var orders m.Orders
+	var orders v.OrdersResponse
 
-	db.Find(&orders)
+	db.Table("orders").Select("orders.id, orders.address_to, orders.amount, orders.comment, orders.status, assets.symbol").Joins("LEFT JOIN assets ON assets.id = orders.asset_id").Find(&orders)
 	res, err := json.Marshal(orders)
 	if err != nil {
 		ReturnResult(w, orders)

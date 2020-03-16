@@ -65,6 +65,7 @@ func (a *App) setRouters() {
 	a.Get("/api/seeds", a.GetSeeds)
 	a.Post("/api/wallets", a.CreateWallet)
 	a.Get("/api/wallets", a.GetWallets)
+	a.Get("/api/wallets/{asset}", a.GetWalletsForAsset)
 	a.Post("/api/assets", a.CreateAsset)
 	a.Get("/api/assets", a.GetAssets)
 	a.Post("/api/orders", a.CreateOrder)
@@ -115,6 +116,10 @@ func (a *App) CreateWallet(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) GetWallets(w http.ResponseWriter, r *http.Request) {
 	h.GetWallets(a.DB, w, r)
+}
+
+func (a *App) GetWalletsForAsset(w http.ResponseWriter, r *http.Request) {
+	h.GetWalletsForAsset(a.DB, w, r)
 }
 
 // Orders
