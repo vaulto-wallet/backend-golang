@@ -1,4 +1,4 @@
-package vaultoapi
+package vaulto
 
 import (
 	"bytes"
@@ -113,7 +113,7 @@ func (a *VaultoAPI) CreateAsset(name string, symbol string, index int, decimals 
 	return true, nil
 }
 
-func (a *VaultoAPI) GetAssets() (interface{}, error) {
+func (a *VaultoAPI) GetAssets() (AssetsResponse, error) {
 	resp, err := a.Request("GET", "/assets", nil)
 	if err != nil {
 		return nil, err
@@ -127,7 +127,11 @@ func (a *VaultoAPI) GetAssets() (interface{}, error) {
 	if len(response.Error) > 0 {
 		return nil, errors.New(response.ErrorText)
 	}
-	return response.Result, nil
+	var ar AssetsResponse
+	buf := new(bytes.Buffer)
+	json.NewEncoder(buf).Encode(response.Result)
+	json.NewDecoder(buf).Decode(&ar)
+	return ar, nil
 }
 
 func (a *VaultoAPI) CreateSeed(name string, seed string) (bool, error) {

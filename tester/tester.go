@@ -1,7 +1,8 @@
 package main
 
 import (
-	a "../vaultoapi"
+	b "../api/blockatlas"
+	a "../api/vaulto"
 	"fmt"
 	"log"
 )
@@ -12,6 +13,9 @@ func main() {
 
 	vaulto_fetcher := a.VaultoAPI{}
 	vaulto_fetcher.Init("http://localhost:8000/api")
+
+	blockatlas := b.BlockAtlasAPI{}
+	blockatlas.Init("http://localhost:8420/")
 
 	fmt.Print(vaulto)
 
@@ -24,7 +28,7 @@ func main() {
 	result, err = vaulto.Register("fetcher", "fetcher")
 	log.Println("Register fetcher : ", err, result)
 
-	result, err = vaulto.Register("sender", "sender")
+	result, err = vaulto.Register("worker", "worker")
 	log.Println("Register sender : ", err, result)
 
 	result, err = vaulto.Login("user1", "pwd1")
@@ -65,5 +69,8 @@ func main() {
 
 	orders, err := vaulto_fetcher.GetOrders()
 	log.Println("Fetcher Orders :", err, orders)
+
+	txs, err := blockatlas.GetTXs("etherscan", "0x278F5F53156Be78bFE665D5354d40c539ca02ef3")
+	log.Println("BlockAtlas TXs :", err, txs[0])
 
 }

@@ -2,5 +2,7 @@
 wallet-core
 test.db
 ./wallet-core
-/fetcher/
+/workers/fetcher/
 /wallet-core/
+config.json
+

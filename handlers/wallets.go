@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	v "../api/vaulto"
 	m "../models"
-	v "../vaultoapi"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"

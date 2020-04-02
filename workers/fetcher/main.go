@@ -1,23 +1,40 @@
 package main
 
 import (
-	a "../vaultoapi"
-	alfaex "./alfaex"
+	"../../api/alfaex"
+	a "../../api/vaulto"
+	"github.com/spf13/viper"
 	"log"
 	"math/big"
 )
 
 func main() {
-	public_key := "7e041f7c036cbe256001b886fa95780f2e8f8c046d909cbdbdcbb25242709188"
-	secret_key := "20ca2ad92dbf8db21f1cc9871ce5938f4c72a474142c7c5b95f5a47b18eeda3b9ac60b8f87e415f84c285ff252a4e74b1a71e1c0abcea97e40d4d369acde2acb"
-	url := "http://167.99.243.191"
-	vaulto := a.VaultoAPI{}
-	vaulto.Init("http://localhost:8000/api")
+	viper.SetConfigName("config.json")
+	viper.SetConfigType("json")
+	viper.AddConfigPath(".")
 
-	vaulto.Login("fetcher", "fetcher")
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	publicKey := viper.GetString("public_key")
+	secretKey := viper.GetString("secret_key")
+	externalUrl := viper.GetString("external_url")
+
+	vaulto := a.VaultoAPI{}
+
+	vaultoUrl := viper.GetString("vaulto_url")
+	vaultoUser := viper.GetString("vaulto_user")
+	vaultoPassword := viper.GetString("vaulto_user")
+
+	vaulto.Init(vaultoUrl)
+
+	vaulto.Login(vaultoUser, vaultoPassword)
 
 	alfa := alfaex.AlfaEXAPI{}
-	alfa.Init(public_key, secret_key, url)
+	alfa.Init(publicKey, secretKey, externalUrl)
 
 	operations := alfa.GetOperations()
 

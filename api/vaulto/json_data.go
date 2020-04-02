@@ -1,4 +1,4 @@
-package vaultoapi
+package vaulto
 
 type LoginRequest struct {
 	Username string `json:"username"`
@@ -13,6 +13,8 @@ type AssetRequest struct {
 	Decimals  int    `json:"decimals,omitempty"`
 	Rounding  int    `json:"rounding,omitempty"`
 }
+
+type AssetsResponse []AssetRequest
 
 type SeedRequest struct {
 	Name     string `json:"name,omitempty"`
@@ -68,4 +70,13 @@ type ResponseInterface struct {
 	ErrorCode int         `json:"code"`
 	ErrorText string      `json:"text"`
 	Result    interface{} `json:"result"`
+}
+
+func (ar *AssetsResponse) Find(symbol string) (request *AssetRequest) {
+	for i, s := range ([]AssetRequest)(*ar) {
+		if s.Symbol == symbol {
+			return &([]AssetRequest)(*ar)[i]
+		}
+	}
+	return nil
 }
