@@ -2,15 +2,8 @@ package trusthelpers
 
 // #cgo CFLAGS: -I../wallet-core/include
 // #cgo LDFLAGS: -L../wallet-core/build -L../wallet-core/build/trezor-crypto -lTrustWalletCore -lprotobuf -lTrezorCrypto -lc++ -lm
-// #include <TrustWalletCore/TWHDWallet.h>
 // #include <TrustWalletCore/TWString.h>
 // #include <TrustWalletCore/TWData.h>
-// #include <TrustWalletCore/TWPrivateKey.h>
-// #include <TrustWalletCore/TWPublicKey.h>
-// #include <TrustWalletCore/TWEthereumProto.h>
-// #include <TrustWalletCore/TWEthereumSigner.h>
-// #include <TrustWalletCore/TWAnyProto.h>
-// #include <TrustWalletCore/TWAnySigner.h>
 import "C"
 import "unsafe"
 

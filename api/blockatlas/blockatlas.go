@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -45,4 +46,42 @@ func (a *BlockAtlasAPI) GetTXs(asset string, address string) ([]Tx, error) {
 	}
 	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
 	return response.Docs, nil
+}
+
+func (a *BlockAtlasAPI) EstimateGas(asset string, data interface{}) (int64, error) {
+	resp, err := a.Request("POST", "/v1/"+asset+"/"+"transaction/estimate", data)
+	if err != nil {
+		return 0, err
+	}
+	var response StringResponse
+
+	err = json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
+	if err != nil {
+		return 0, err
+	}
+	ret, err := strconv.ParseInt(response.Result, 10, 64)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return ret, nil
+}
+
+func (a *BlockAtlasAPI) GasPrice(asset string) (int64, error) {
+	resp, err := a.Request("GET", "/v1/"+asset+"/"+"gas/price", nil)
+	if err != nil {
+		return 0, err
+	}
+	var response StringResponse
+	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
+	if err != nil {
+		return 0, err
+	}
+	ret, err := strconv.ParseInt(response.Result, 10, 64)
+
+	if err != nil {
+		return 0, err
+	}
+	return ret, nil
 }

@@ -74,7 +74,7 @@ func UserRegister(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	h.Write([]byte(user.Password))
 	dbUser = m.User{Username: user.Username, Password: hex.EncodeToString(h.Sum(nil))}
 	db.Create(&dbUser)
-	ReturnResult(w, true)
+	ReturnResult(w, dbUser.ID)
 }
 
 func Clear(db *gorm.DB, w http.ResponseWriter, req *http.Request) {

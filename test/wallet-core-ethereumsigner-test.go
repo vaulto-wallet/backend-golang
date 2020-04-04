@@ -1,24 +1,24 @@
 package main
 
-// #cgo CFLAGS: -I../wallet-core/include
+import "C"
+import "unsafe"
+
+// #cgo CFLAGS: -I../wallet-core/include -I../wallet-core/src -I/usr/local/include/boost
 // #cgo LDFLAGS: -L../wallet-core/build -L../wallet-core/build/trezor-crypto -lTrustWalletCore -lprotobuf -lTrezorCrypto -lc++ -lm
 // #include <TrustWalletCore/TWHDWallet.h>
 // #include <TrustWalletCore/TWString.h>
 // #include <TrustWalletCore/TWData.h>
 // #include <TrustWalletCore/TWPrivateKey.h>
 // #include <TrustWalletCore/TWPublicKey.h>
-// #include <TrustWalletCore/TWEthereumProto.h>
-// #include <TrustWalletCore/TWEthereumSigner.h>
-// #include <TrustWalletCore/TWAnyProto.h>
 // #include <TrustWalletCore/TWAnySigner.h>
 // #include <TrustWalletCore/TWCurve.h>
+// #include <TrustWalletCore/TWCoinType.h>
 import "C"
 
 import (
 	"fmt"
 	"math/big"
 )
-import "unsafe"
 import "encoding/hex"
 import "../proto/Ethereum"
 
@@ -102,7 +102,7 @@ func main() {
 	out, err := input.XXX_Marshal(nil, true)
 	fmt.Println((string)(out), err)
 
-	ethout := C.TWEthereumSignerSign((C.TW_Ethereum_Proto_SigningInput)(TWDataCreateWithGoBytes(out)))
+	ethout := C.TWAnySignerSign(TWDataCreateWithGoBytes(out), C.TWCoinTypeEthereum)
 
 	fmt.Println((string)(TWDataGoBytes(unsafe.Pointer(ethout))))
 

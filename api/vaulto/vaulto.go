@@ -74,22 +74,22 @@ func (a *VaultoAPI) Login(username string, password string) (bool, error) {
 	return true, nil
 }
 
-func (a *VaultoAPI) Register(username string, password string) (bool, error) {
+func (a *VaultoAPI) Register(username string, password string) (int64, error) {
 	resp, err := a.Request("POST", "/users/register", LoginRequest{username, password})
 	if err != nil {
-		return false, err
+		return -1, err
 	}
-	var response ResponseBool
+	var response ResponseInterface
 	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
 
 	if len(response.Error) > 0 {
-		return false, errors.New(response.ErrorText)
+		return -1, errors.New(response.ErrorText)
 	}
 
-	return response.Result, nil
+	return int64(response.Result.(float64)), nil
 }
 
-func (a *VaultoAPI) CreateAsset(name string, symbol string, index int, decimals int, rounding int) (bool, error) {
+func (a *VaultoAPI) CreateAsset(name string, symbol string, index int, decimals int, rounding int) (int64, error) {
 	resp, err := a.Request("POST", "/assets", AssetRequest{
 		Name:      name,
 		CoinIndex: index,
@@ -99,18 +99,18 @@ func (a *VaultoAPI) CreateAsset(name string, symbol string, index int, decimals 
 		Rounding:  rounding,
 	})
 	if err != nil {
-		return false, err
+		return -1, err
 	}
 
 	log.Print(string(resp))
 
-	var response ResponseBool
+	var response ResponseInterface
 	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
 
 	if len(response.Error) > 0 {
-		return false, errors.New(response.ErrorText)
+		return -1, errors.New(response.ErrorText)
 	}
-	return true, nil
+	return int64(response.Result.(float64)), nil
 }
 
 func (a *VaultoAPI) GetAssets() (AssetsResponse, error) {
@@ -134,20 +134,20 @@ func (a *VaultoAPI) GetAssets() (AssetsResponse, error) {
 	return ar, nil
 }
 
-func (a *VaultoAPI) CreateSeed(name string, seed string) (bool, error) {
+func (a *VaultoAPI) CreateSeed(name string, seed string) (int64, error) {
 	resp, err := a.Request("POST", "/seeds", SeedRequest{name, ""})
 	if err != nil {
-		return false, err
+		return -1, err
 	}
 	log.Print(string(resp))
 
-	var response ResponseBool
+	var response ResponseInterface
 	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
 
 	if len(response.Error) > 0 {
-		return false, errors.New(response.ErrorText)
+		return -1, errors.New(response.ErrorText)
 	}
-	return true, nil
+	return int64(response.Result.(float64)), nil
 }
 
 func (a *VaultoAPI) GetSeeds() (interface{}, error) {
@@ -165,23 +165,23 @@ func (a *VaultoAPI) GetSeeds() (interface{}, error) {
 	return response.Result, nil
 }
 
-func (a *VaultoAPI) CreateWallet(name string, seedId uint, assetId uint) (bool, error) {
+func (a *VaultoAPI) CreateWallet(name string, seedId uint, assetId uint) (int64, error) {
 	resp, err := a.Request("POST", "/wallets", WalletRequest{
 		Name:    name,
 		AssetId: assetId,
 		SeedId:  seedId,
 	})
 	if err != nil {
-		return false, err
+		return -1, err
 	}
 
-	var response ResponseBool
+	var response ResponseInterface
 	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
 
 	if len(response.Error) > 0 {
-		return false, errors.New(response.ErrorText)
+		return -1, errors.New(response.ErrorText)
 	}
-	return true, nil
+	return int64(response.Result.(float64)), nil
 }
 
 func (a *VaultoAPI) GetWallets() (WalletsResponse, error) {
@@ -227,25 +227,25 @@ func (a *VaultoAPI) GetWalletsForAsset(asset string) (WalletsResponse, error) {
 	return wr, nil
 }
 
-func (a *VaultoAPI) CreateAddress(name string, walletId int) (bool, error) {
+func (a *VaultoAPI) CreateAddress(name string, walletId int) (int64, error) {
 	resp, err := a.Request("POST", "/address", AddressRequest{
 		Name:     name,
 		WalletID: walletId,
 	})
 	if err != nil {
-		return false, err
+		return -1, err
 	}
 
-	var response ResponseBool
+	var response ResponseInterface
 	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
 
 	if len(response.Error) > 0 {
-		return false, errors.New(response.ErrorText)
+		return -1, errors.New(response.ErrorText)
 	}
-	return true, nil
+	return int64(response.Result.(float64)), nil
 }
 
-func (a *VaultoAPI) CreateOrder(asset string, address_to string, amount float64, comment string) (bool, error) {
+func (a *VaultoAPI) CreateOrder(asset string, address_to string, amount float64, comment string) (int64, error) {
 	resp, err := a.Request("POST", "/orders", OrderRequest{
 		Symbol:    asset,
 		AddressTo: address_to,
@@ -253,15 +253,15 @@ func (a *VaultoAPI) CreateOrder(asset string, address_to string, amount float64,
 		Comment:   comment,
 	})
 	if err != nil {
-		return false, err
+		return -1, err
 	}
-	var response ResponseBool
+	var response ResponseInterface
 	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
 
 	if len(response.Error) > 0 {
-		return false, errors.New(response.ErrorText)
+		return -1, errors.New(response.ErrorText)
 	}
-	return true, nil
+	return int64(response.Result.(float64)), nil
 
 }
 

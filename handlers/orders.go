@@ -36,7 +36,7 @@ func CreateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		r.AssetId = asset.ID
 	}
 
-	db.Create(&m.Order{
+	newOrder := m.Order{
 		Amount:        r.Amount,
 		AddressTo:     r.AddressTo,
 		AssetID:       r.AssetId,
@@ -44,8 +44,10 @@ func CreateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		SubmittedByID: dbUser.ID,
 		Comment:       r.Comment,
 		Status:        0,
-	})
-	ReturnResult(w, true)
+	}
+
+	db.Create(&newOrder)
+	ReturnResult(w, newOrder.ID)
 }
 
 func UpdateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {

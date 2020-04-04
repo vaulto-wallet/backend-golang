@@ -59,7 +59,7 @@ func CreateWallet(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	}
 
 	db.Create(&newWallet)
-	ReturnResult(w, true)
+	ReturnResult(w, newWallet.ID)
 }
 
 func GetWallets(db *gorm.DB, w http.ResponseWriter, req *http.Request) {

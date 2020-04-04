@@ -63,6 +63,10 @@ type TxPage []Tx
 // It is written in the smallest possible unit (e.g. Wei, Satoshis)
 type Amount string
 
+type StringResponse struct {
+	Result string `json:"result"`
+}
+
 // Tx describes an on-chain transaction generically
 type Tx struct {
 	// Unique identifier

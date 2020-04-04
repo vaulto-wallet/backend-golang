@@ -52,7 +52,7 @@ func CreateAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	db.Save(&dbWallet)
 	db.Create(&modelAddress)
 
-	ReturnResult(w, true)
+	ReturnResult(w, modelAddress.ID)
 
 }
 

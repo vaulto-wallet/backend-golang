@@ -45,7 +45,7 @@ func CreateSeed(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	}
 	db.Create(&dbSeed)
 
-	ReturnResult(w, true)
+	ReturnResult(w, dbSeed.ID)
 }
 
 func GetSeeds(db *gorm.DB, w http.ResponseWriter, req *http.Request) {

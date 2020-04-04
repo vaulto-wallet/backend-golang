@@ -1,7 +1,6 @@
 .idea
 wallet-core
 test.db
-./wallet-core
 /workers/fetcher/
 /wallet-core/
 config.json

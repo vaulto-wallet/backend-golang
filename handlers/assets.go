@@ -25,7 +25,7 @@ func CreateAsset(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	}
 
 	db.Create(&r)
-	ReturnResult(w, true)
+	ReturnResult(w, r.ID)
 }
 
 func GetAssets(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
