@@ -43,6 +43,12 @@ func main() {
 	assets, err := vaulto.GetAssets()
 	log.Println("Assets : ", assets)
 
+	eth := assets.Find("ETH")
+	intEth := eth.ToBigInt(0.1)
+	log.Println("ETH Float to BigInt : ", intEth)
+	floatEth := eth.ToFloat(intEth)
+	log.Println("ETH BigInt to Float: ", floatEth)
+
 	seed_id, err := vaulto.CreateSeed("Seed1", "")
 	log.Println("Create seed : ", err, seed_id)
 
@@ -58,14 +64,20 @@ func main() {
 	wallets_eth, err := vaulto.GetWalletsForAsset("ETH")
 	log.Println("Wallets for ETH : ", wallets_eth)
 
-	addres_id, err := vaulto.CreateAddress("New address", 1)
-	log.Println("Create address : ", err, addres_id)
+	address_id, err := vaulto.CreateAddress("New address", 1)
+	log.Println("Create address : ", err, address_id)
+
+	address_id, err = vaulto.CreateAddress("New address", 1)
+	log.Println("Create address : ", err, address_id)
+
+	addresses, err := vaulto.GetAddressesForWallet(1)
+	log.Println("Addresses : ", err, addresses)
 
 	wallets, err = vaulto_fetcher.GetWalletsForAsset("ETH")
 	log.Println("Fetcher Wallets :", err, wallets)
 
 	order_id, err := vaulto_fetcher.CreateOrder("ETH", "0xa1894C90D2632850B6c20f217837e626628E5a15", 0.1, "New order")
-	log.Println("Fetcher Order :", err, order_id)
+	log.Println("Fetcher OrderData :", err, order_id)
 
 	orders, err := vaulto_fetcher.GetOrders()
 	log.Println("Fetcher Orders :", err, orders)

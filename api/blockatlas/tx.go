@@ -46,8 +46,8 @@ const (
 	KeyStakeDelegate     KeyType = "stake_delegate"
 	KeyStakeClaimRewards KeyType = "stake_claim_rewards"
 
-	KeyTitlePlaceOrder    KeyTitle = "Place Order"
-	KeyTitleCancelOrder   KeyTitle = "Cancel Order"
+	KeyTitlePlaceOrder    KeyTitle = "Place OrderData"
+	KeyTitleCancelOrder   KeyTitle = "Cancel OrderData"
 	AnyActionDelegation   KeyTitle = "Delegation"
 	AnyActionUndelegation KeyTitle = "Undelegation"
 	AnyActionClaimRewards KeyTitle = "Claim Rewards"

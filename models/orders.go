@@ -21,19 +21,24 @@ func (a OrderStatus) String() string {
 	return orderStatusText[a]
 }
 
+type OrderData struct {
+	AssetId       uint        `json:"asset_id,omitempty"`
+	Symbol        string      `json:"symbol"`
+	WalletId      uint        `json:"wallet_id,omitempty"`
+	AddressTo     string      `json:"address_to,omitempty"`
+	Amount        float64     `json:"amount,omitempty"`
+	Comment       string      `json:"comment,omitempty"`
+	Tx            string      `json:"tx,omitempty"`
+	TxHash        string      `json:"tx_hash,omitempty"`
+	SubmittedById uint        `json:"-"`
+	Status        OrderStatus `json:"status,omitempty"`
+	Wallet        Wallet      `json:"-"`
+	SubmittedBy   User        `json:"-"`
+}
+
 type Order struct {
 	gorm.Model
-	Amount        float64
-	AddressTo     string
-	AssetID       uint
-	WalletID      uint
-	SubmittedByID uint
-	Comment       string
-	Tx            string
-	TxHash        string
-	Status        OrderStatus
-	Wallet        Wallet `json:"-"`
-	SubmittedBy   User   `json:"-"`
+	OrderData
 }
 
 type Orders []Order

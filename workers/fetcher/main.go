@@ -55,7 +55,7 @@ func main() {
 	log.Println("Wallets :", err, wallets)
 
 	result, err := vaulto.CreateOrder("ETH", "0xa1894C90D2632850B6c20f217837e626628E5a15", 0.1, "New order")
-	log.Println("Order :", err, result)
+	log.Println("OrderData :", err, result)
 
 	orders, err := vaulto.GetOrders()
 	log.Println("Orders :", err, orders)

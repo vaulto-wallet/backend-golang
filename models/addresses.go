@@ -6,6 +6,7 @@ import (
 
 type Address struct {
 	gorm.Model `json:",omitempty"`
+	Name       string  `json:"name,omitempty"`
 	Address    string  `json:"address,omitempty"`
 	PrivateKey string  `json:"private_key,omitempty"`
 	WalletID   int     `json:"wallet_id,omitempty"`
@@ -15,6 +16,7 @@ type Address struct {
 	BalanceInt string  `json:"balance_int,omitempty"`
 	Balance    float64 `json:"balance,omitempty"`
 	Wallet     Wallet  `json:"-"`
+	Seqno      uint64  `json:"seqno,omitempty"`
 }
 
 type Addresses []Address

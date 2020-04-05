@@ -72,8 +72,13 @@ func (a *App) setRouters() {
 	a.Get("/api/orders", a.GetOrders)
 	a.Put("/api/orders", a.UpdateOrder)
 	a.Post("/api/address", a.CreateAddress)
-	a.Get("/api/address", a.GetAddressList)
+	a.Get("/api/address/{wallet}", a.GetAddressList)
 	a.Put("/api/address", a.UpdateAddress)
+	a.Post("/api/transactions", a.CreateTransaction)
+	a.Get("/api/transactions", a.GetTransactions)
+	a.Put("/api/transactions", a.UpdateTransaction)
+	a.Get("/api/transaction/{transaction}", a.GetTransaction)
+
 }
 
 func (a *App) Login(w http.ResponseWriter, r *http.Request) {
@@ -146,4 +151,21 @@ func (a *App) GetAddressList(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	h.UpdateAddress(a.DB, w, r)
+}
+
+// transactions
+func (a *App) CreateTransaction(w http.ResponseWriter, r *http.Request) {
+	h.CreateTransaction(a.DB, w, r)
+}
+
+func (a *App) GetTransactions(w http.ResponseWriter, r *http.Request) {
+	h.GetTransactions(a.DB, w, r)
+}
+
+func (a *App) GetTransaction(w http.ResponseWriter, r *http.Request) {
+	h.GetTransaction(a.DB, w, r)
+}
+
+func (a *App) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
+	h.UpdateTransaction(a.DB, w, r)
 }

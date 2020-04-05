@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	v "../api/vaulto"
 	m "../models"
 	"encoding/json"
 	"fmt"
@@ -18,7 +17,7 @@ func CreateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		ReturnError(w, Error(NoUser))
 		return
 	}
-	var r v.OrderRequest
+	var r m.OrderData
 	err := json.NewDecoder(req.Body).Decode(&r)
 
 	if err != nil {
@@ -37,13 +36,15 @@ func CreateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	}
 
 	newOrder := m.Order{
-		Amount:        r.Amount,
-		AddressTo:     r.AddressTo,
-		AssetID:       r.AssetId,
-		WalletID:      r.WalletId,
-		SubmittedByID: dbUser.ID,
-		Comment:       r.Comment,
-		Status:        0,
+		OrderData: m.OrderData{
+			Amount:        r.Amount,
+			AddressTo:     r.AddressTo,
+			AssetId:       r.AssetId,
+			WalletId:      r.WalletId,
+			SubmittedById: dbUser.ID,
+			Comment:       r.Comment,
+			Status:        m.OrderStatusNew,
+		},
 	}
 
 	db.Create(&newOrder)
@@ -61,7 +62,7 @@ func UpdateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var r v.OrderRequest
+	var r m.Order
 	err := json.NewDecoder(req.Body).Decode(&r)
 
 	if err != nil {
@@ -69,7 +70,7 @@ func UpdateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	db.First(&dbOrder, r.Id)
+	db.First(&dbOrder, r.ID)
 
 	if dbOrder.Status != (m.OrderStatus)(r.Status) {
 		dbOrder.Status = (m.OrderStatus)(r.Status)
@@ -87,9 +88,9 @@ func GetOrders(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	username := req.Context().Value("user")
 	dbUser := m.User{}
 	db.First(&dbUser, "Username = ?", username)
-	var orders v.OrdersResponse
+	var orders m.Orders
 
-	db.Table("orders").Select("orders.id, orders.address_to, orders.amount, orders.comment, orders.status, assets.symbol").Joins("LEFT JOIN assets ON assets.id = orders.asset_id").Find(&orders)
+	db.Table("orders").Select("orders.id, orders.address_to, orders.asset_id, orders.amount, orders.comment, orders.status, orders.submitted_by_id, orders.wallet_id, assets.symbol").Joins("LEFT JOIN assets ON assets.id = orders.asset_id").Find(&orders)
 	res, err := json.Marshal(orders)
 	if err != nil {
 		ReturnResult(w, orders)

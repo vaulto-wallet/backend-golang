@@ -5,6 +5,7 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+/*
 type AssetRequest struct {
 	Name      string `json:"name,omitempty"`
 	CoinIndex int    `json:"coinindex,omitempty"`
@@ -15,12 +16,13 @@ type AssetRequest struct {
 }
 
 type AssetsResponse []AssetRequest
-
+*/
 type SeedRequest struct {
 	Name     string `json:"name,omitempty"`
 	Mnemonic string `json:"mnemonic,omitempty"`
 }
 
+/*
 type WalletRequest struct {
 	Id      int    `json:"id,omitempty"`
 	Name    string `json:"name,omitempty"`
@@ -29,9 +31,10 @@ type WalletRequest struct {
 	Symbol  string `json:"asset_symbol,omitempty"`
 }
 
-type WalletsResponse []WalletRequest
 
-type OrderRequest struct {
+type WalletsResponse []WalletRequest
+*/
+/*type OrderRequest struct {
 	Id        int     `json:"id,omitempty"`
 	AssetId   uint    `json:"asset_id,omitempty"`
 	Symbol    string  `json:"symbol"`
@@ -45,12 +48,13 @@ type OrderRequest struct {
 }
 
 type OrdersResponse []OrderRequest
-
+*/
+/*
 type AddressRequest struct {
 	Name     string `json:"name,omitempty"`
 	WalletID int    `json:"wallet_id,omitempty"`
 }
-
+*/
 type ResponseBool struct {
 	Error     string `json:"error"`
 	ErrorCode int    `json:"code"`
@@ -72,6 +76,13 @@ type ResponseInterface struct {
 	Result    interface{} `json:"result"`
 }
 
+type ResponseError struct {
+	Error     string `json:"error"`
+	ErrorCode int    `json:"code"`
+	ErrorText string `json:"text"`
+}
+
+/*
 func (ar *AssetsResponse) Find(symbol string) (request *AssetRequest) {
 	for i, s := range ([]AssetRequest)(*ar) {
 		if s.Symbol == symbol {
@@ -80,3 +91,23 @@ func (ar *AssetsResponse) Find(symbol string) (request *AssetRequest) {
 	}
 	return nil
 }
+
+func (a *AssetRequest) ToBigInt(value float64) (ret *big.Int) {
+	e := new(big.Int)
+	r := new(big.Float)
+	e.Exp(big.NewInt(10), big.NewInt( int64(a.Decimals) ), nil)
+	r.SetFloat64(value).Mul( r, new(big.Float).SetInt(e) )
+	ret, _ = r.Int(nil)
+	return
+}
+
+func (a *AssetRequest) ToFloat(value *big.Int) (ret float64) {
+	e := new(big.Int)
+	r := new(big.Float)
+	e.Exp(big.NewInt(10), big.NewInt( int64(a.Decimals) ), nil)
+	r.SetInt(value)
+	ret, _ = new(big.Float).Quo(r, new(big.Float).SetInt(e) ).Float64()
+	return
+}
+
+*/

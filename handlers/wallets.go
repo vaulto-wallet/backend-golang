@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	v "../api/vaulto"
 	m "../models"
 	"encoding/json"
 	"fmt"
@@ -19,7 +18,7 @@ func CreateWallet(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		ReturnError(w, Error(NoUser))
 		return
 	}
-	var r v.WalletRequest
+	var r m.Wallet
 	err := json.NewDecoder(req.Body).Decode(&r)
 
 	if err != nil {
@@ -52,8 +51,8 @@ func CreateWallet(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	newWallet := m.Wallet{
 		Name:        r.Name,
 		NetworkType: "",
-		SeedID:      r.SeedId,
-		AssetID:     r.AssetId,
+		SeedId:      r.SeedId,
+		AssetId:     r.AssetId,
 		N:           0,
 		ChangeN:     0,
 	}
@@ -67,7 +66,7 @@ func GetWallets(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	dbUser := m.User{}
 	db.First(&dbUser, "Username = ?", username)
 
-	var wallets v.WalletsResponse
+	var wallets m.Wallet
 
 	db.Table("wallets").
 		Select("wallets.id, wallets.seed_id, wallets.asset_id, assets.symbol").
@@ -93,7 +92,7 @@ func GetWalletsForAsset(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 
 	asset := vars["asset"]
 
-	var wallets v.WalletsResponse
+	var wallets m.Wallets
 
 	db.Table("wallets").
 		Select("wallets.id, wallets.seed_id, wallets.asset_id, assets.symbol").

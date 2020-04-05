@@ -4,8 +4,11 @@ import (
 	m "../models"
 	hlp "../trusthelpers"
 	"encoding/json"
+	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	"net/http"
+	"strconv"
 )
 
 func CreateAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
@@ -57,7 +60,26 @@ func CreateAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 }
 
 func GetAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
-	ReturnError(w, Error(NotImplemented))
+	username := req.Context().Value("user")
+	dbUser := m.User{}
+	db.First(&dbUser, "Username = ?", username)
+
+	vars := mux.Vars(req)
+
+	walletId, _ := strconv.ParseUint(vars["wallet"], 10, 64)
+
+	var addresses m.Addresses
+
+	db.Find(&addresses, "wallet_id = ?", walletId)
+
+	res, err := json.Marshal(addresses)
+	if err != nil {
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, err.Error())
+		return
+	}
+
+	fmt.Println((string)(res))
+	ReturnResult(w, addresses)
 }
 
 func UpdateAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
