@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	"math/big"
 	"net/http"
 	"strconv"
 )
@@ -83,5 +84,61 @@ func GetAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 }
 
 func UpdateAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
-	ReturnError(w, Error(NotImplemented))
+	username := req.Context().Value("user")
+	dbUser := m.User{}
+	db.First(&dbUser, "Username = ?", username)
+
+	if dbUser.ID == 0 {
+		ReturnError(w, Error(NoUser))
+		return
+	}
+
+	var r m.Address
+	var dbAddress m.Address
+
+	err := json.NewDecoder(req.Body).Decode(&r)
+	if err != nil {
+		ReturnError(w, Error(BadRequest))
+		return
+	}
+
+	if r.ID != 0 {
+		db.Find(&dbAddress, r.ID)
+	} else if len(r.Address) > 0 {
+		db.Find(&dbAddress, "address = ?", r.Address)
+	}
+	if dbAddress.ID == 0 {
+		ReturnError(w, Error(BadRequest))
+		return
+	}
+
+	var dbWallet m.Wallet
+
+	db.Set("gorm:auto_preload", true).Find(&dbWallet, dbAddress.WalletID)
+
+	if dbWallet.ID == 0 {
+		ReturnError(w, Error(BadRequest))
+		return
+	}
+
+	if len(r.BalanceInt) > 0 {
+		base := 10
+		numString := r.BalanceInt
+		if r.BalanceInt[0:2] == "0x" {
+			numString = r.BalanceInt[2:]
+			base = 16
+		}
+		if intBalance, isOk := new(big.Int).SetString(numString, base); isOk == true {
+			dbAddress.Balance = dbWallet.Asset.ToFloat(intBalance)
+			dbAddress.BalanceInt = numString
+		}
+	}
+
+	if r.Seqno > dbAddress.Seqno {
+		dbAddress.Seqno = r.Seqno
+	}
+
+	db.Save(&dbAddress)
+
+	ReturnResult(w, true)
 }

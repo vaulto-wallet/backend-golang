@@ -70,6 +70,8 @@ func (a *App) setRouters() {
 	a.Get("/api/assets", a.GetAssets)
 	a.Post("/api/orders", a.CreateOrder)
 	a.Get("/api/orders", a.GetOrders)
+	a.Get("/api/order/{order}", a.GetOrder)
+	a.Get("/api/order/{order}/txs", a.GetOrderTransactions)
 	a.Put("/api/orders", a.UpdateOrder)
 	a.Post("/api/address", a.CreateAddress)
 	a.Get("/api/address/{wallet}", a.GetAddressList)
@@ -134,6 +136,14 @@ func (a *App) CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) GetOrders(w http.ResponseWriter, r *http.Request) {
 	h.GetOrders(a.DB, w, r)
+}
+
+func (a *App) GetOrder(w http.ResponseWriter, r *http.Request) {
+	h.GetOrder(a.DB, w, r)
+}
+
+func (a *App) GetOrderTransactions(w http.ResponseWriter, r *http.Request) {
+	h.GetTransactions(a.DB, w, r)
 }
 
 func (a *App) UpdateOrder(w http.ResponseWriter, r *http.Request) {

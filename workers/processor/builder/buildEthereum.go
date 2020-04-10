@@ -31,10 +31,10 @@ func BuildEthereum(private_key []byte, to string, value big.Int, gasLimit big.In
 	input := new(TW_Ethereum_Proto.SigningInput)
 	input.Amount = value.Bytes()
 	input.PrivateKey = privateKeyHex
-	input.ChainId = new(big.Int).SetInt64(1).Bytes()
+	input.ChainId = new(big.Int).SetInt64(3).Bytes()
 	input.GasLimit = gasLimit.Bytes()
 	input.GasPrice = gasPrice.Bytes()
-	input.Nonce = gasPrice.Bytes()
+	input.Nonce = nonce.Bytes()
 	input.ToAddress = to
 
 	out, _ := input.XXX_Marshal(nil, true)

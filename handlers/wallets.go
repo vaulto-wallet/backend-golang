@@ -66,7 +66,7 @@ func GetWallets(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	dbUser := m.User{}
 	db.First(&dbUser, "Username = ?", username)
 
-	var wallets m.Wallet
+	var wallets []m.Wallet
 
 	db.Table("wallets").
 		Select("wallets.id, wallets.seed_id, wallets.asset_id, assets.symbol").

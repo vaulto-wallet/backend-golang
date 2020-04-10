@@ -49,7 +49,7 @@ func main() {
 	floatEth := eth.ToFloat(intEth)
 	log.Println("ETH BigInt to Float: ", floatEth)
 
-	seed_id, err := vaulto.CreateSeed("Seed1", "")
+	seed_id, err := vaulto.CreateSeed("Seed1", "orange okay much equip pond cushion ask hover bar shove ceiling have")
 	log.Println("Create seed : ", err, seed_id)
 
 	seeds, err := vaulto.GetSeeds()
@@ -76,16 +76,16 @@ func main() {
 	wallets, err = vaulto_fetcher.GetWalletsForAsset("ETH")
 	log.Println("Fetcher Wallets :", err, wallets)
 
-	order_id, err := vaulto_fetcher.CreateOrder("ETH", "0xa1894C90D2632850B6c20f217837e626628E5a15", 0.1, "New order")
+	order_id, err := vaulto_fetcher.CreateOrder("ETH", "0x7d57DA3f1ED1Fd28Fc33338D6D07cf6c13a333c2", 0.01, "New order")
 	log.Println("Fetcher OrderData :", err, order_id)
 
 	orders, err := vaulto_fetcher.GetOrders()
 	log.Println("Fetcher Orders :", err, orders)
 
-	txs, err := blockatlas.GetTXs("etherscan", "0x278F5F53156Be78bFE665D5354d40c539ca02ef3")
+	txs, err := blockatlas.GetTXs("ETH", "0x278F5F53156Be78bFE665D5354d40c539ca02ef3")
 	log.Println("BlockAtlas TXs :", err, txs)
 
-	price, err := blockatlas.GasPrice("etherscan")
+	price, err := blockatlas.GasPrice("ETH")
 	log.Println("BlockAtlas GasPrice :", err, price)
 
 	//var input e.SigningInput

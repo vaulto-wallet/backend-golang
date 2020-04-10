@@ -51,6 +51,15 @@ func (ar *Assets) Find(symbol string) (ret *Asset) {
 	return nil
 }
 
+func (ar *Assets) Get(idx uint) (ret *Asset) {
+	for i, s := range ([]Asset)(*ar) {
+		if s.ID == idx {
+			return &([]Asset)(*ar)[i]
+		}
+	}
+	return nil
+}
+
 func (a *Asset) ToBigInt(value float64) (ret *big.Int) {
 	e := new(big.Int)
 	r := new(big.Float)

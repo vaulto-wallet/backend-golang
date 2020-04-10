@@ -93,7 +93,7 @@ func main() {
 	walletSeedHex2 := hex.EncodeToString(TWDataGoBytes(walletSeed2))
 	fmt.Println("wallet seed: ", walletSeedHex2)
 
-	key := C.TWHDWalletGetKeyForCoin(wallet, C.TWCoinTypeBitcoin)
+	key := C.TWHDWalletGetKeyForCoin(wallet2, C.TWCoinTypeBitcoin)
 	keyData := C.TWPrivateKeyData(key)
 	keyHex := hex.EncodeToString(TWDataGoBytes(keyData))
 	fmt.Println("<== bitcoin private key: ", keyHex)
@@ -109,9 +109,9 @@ func main() {
 
 	fmt.Println("<== bitcoin public key is valid: ", C.TWPublicKeyIsValid(pubKeyData, C.TWPublicKeyTypeSECP256k1))
 
-	address := C.TWHDWalletGetAddressForCoin(wallet, C.TWCoinTypeBitcoin)
+	address := C.TWHDWalletGetAddressForCoin(wallet2, C.TWCoinTypeBitcoin)
 	fmt.Println("<== bitcoin address: ", TWStringGoString(address))
-	address2 := C.TWCoinTypeDeriveAddress(C.TWCoinTypeBitcoin, key)
+	address2 := C.TWCoinTypeDeriveAddress(C.TWCoinTypeBitcoin, key2)
 	fmt.Println("<== bitcoin address2: ", TWStringGoString(address2))
 
 }

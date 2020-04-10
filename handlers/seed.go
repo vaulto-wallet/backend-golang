@@ -1,7 +1,18 @@
 package handlers
 
+// #cgo CFLAGS: -I../wallet-core/include
+// #cgo LDFLAGS: -L../wallet-core/build -L../wallet-core/build/trezor-crypto -lTrustWalletCore -lprotobuf -lTrezorCrypto -lc++ -lm
+// #include <TrustWalletCore/TWHDWallet.h>
+// #include <TrustWalletCore/TWString.h>
+// #include <TrustWalletCore/TWData.h>
+// #include <TrustWalletCore/TWPrivateKey.h>
+// #include <TrustWalletCore/TWPublicKey.h>
+// #include <TrustWalletCore/TWCoinType.h>
+import "C"
+
 import (
 	m "../models"
+	h "../trusthelpers"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -27,16 +38,34 @@ func CreateSeed(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	}
 	rm := r.(map[string]interface{})
 
-	seed := make([]byte, 32)
-	rand.Read(seed)
+	var seed []byte
+
+	mnemonicParam, mnemonicExists := rm["mnemonic"]
+	if mnemonicExists {
+		mnemonic := h.TWStringCreateWithGoString(mnemonicParam.(string))
+		empty := h.TWStringCreateWithGoString("")
+
+		defer C.TWStringDelete(mnemonic)
+		defer C.TWStringDelete(empty)
+
+		wallet := C.TWHDWalletCreateWithMnemonic(mnemonic, empty)
+		defer C.TWHDWalletDelete(wallet)
+
+		walletSeed := C.TWHDWalletSeed(wallet)
+		defer C.TWDataDelete(walletSeed)
+		seed = h.TWDataGoBytes(walletSeed)[0:32]
+	} else {
+		seed = make([]byte, 32)
+		rand.Read(seed)
+	}
+
+	seedHex := hex.EncodeToString(seed)
 
 	seedName := "New seed"
 	seedParam, exists := rm["name"]
 	if exists {
 		seedName = seedParam.(string)
 	}
-
-	seedHex := hex.EncodeToString(seed)
 
 	dbSeed := m.Seed{
 		Name:  seedName,

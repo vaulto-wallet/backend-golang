@@ -14,6 +14,16 @@ type BlockAtlasAPI struct {
 	client *http.Client
 }
 
+func (a *BlockAtlasAPI) getEndpoint(asset string) (ret string) {
+	switch asset {
+	case "ETH":
+		ret = "etherscan"
+	default:
+		ret = asset
+	}
+	return
+}
+
 func (a *BlockAtlasAPI) Init(url string) {
 	a.url = url
 	a.client = &http.Client{}
@@ -39,7 +49,7 @@ func (a *BlockAtlasAPI) Request(method string, endpoint string, data interface{}
 }
 
 func (a *BlockAtlasAPI) GetTXs(asset string, address string) ([]Tx, error) {
-	resp, err := a.Request("GET", "/v1/"+asset+"/"+address, nil)
+	resp, err := a.Request("GET", "/v1/"+a.getEndpoint(asset)+"/txs/"+address, nil)
 	var response TxResponse
 	if err != nil {
 		return response.Docs, err
@@ -49,7 +59,7 @@ func (a *BlockAtlasAPI) GetTXs(asset string, address string) ([]Tx, error) {
 }
 
 func (a *BlockAtlasAPI) EstimateGas(asset string, data interface{}) (int64, error) {
-	resp, err := a.Request("POST", "/v1/"+asset+"/"+"transaction/estimate", data)
+	resp, err := a.Request("POST", "/v1/"+a.getEndpoint(asset)+"/"+"transaction/estimate", data)
 	if err != nil {
 		return 0, err
 	}
@@ -68,8 +78,23 @@ func (a *BlockAtlasAPI) EstimateGas(asset string, data interface{}) (int64, erro
 	return ret, nil
 }
 
+func (a *BlockAtlasAPI) SendTransaction(asset string, data interface{}) (string, error) {
+	resp, err := a.Request("POST", "/v1/"+a.getEndpoint(asset)+"/"+"transaction/send", data)
+	if err != nil {
+		return "", err
+	}
+	var response StringResponse
+
+	err = json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
+	if err != nil {
+		return "", err
+	}
+
+	return response.Result, nil
+}
+
 func (a *BlockAtlasAPI) GasPrice(asset string) (int64, error) {
-	resp, err := a.Request("GET", "/v1/"+asset+"/"+"gas/price", nil)
+	resp, err := a.Request("GET", "/v1/"+a.getEndpoint(asset)+"/"+"gas/price", nil)
 	if err != nil {
 		return 0, err
 	}

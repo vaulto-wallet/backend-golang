@@ -23,7 +23,9 @@ func GenerateAddress(asset string, seed string, change uint32, n uint32) (string
 
 	empty := TWStringCreateWithGoString("")
 	defer C.TWStringDelete(empty)
-	wallet := C.TWHDWalletCreateWithData(TWDataCreateWithGoBytes(seedBytes), empty)
+	seedPointer := TWDataCreateWithGoBytes(seedBytes)
+	defer C.TWDataDelete(seedPointer)
+	wallet := C.TWHDWalletCreateWithData(seedPointer, empty)
 	defer C.TWHDWalletDelete(wallet)
 	assetId, exists := coins[asset]
 	if !exists {

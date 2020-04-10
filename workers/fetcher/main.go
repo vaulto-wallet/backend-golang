@@ -3,10 +3,111 @@ package main
 import (
 	"../../api/alfaex"
 	a "../../api/vaulto"
+	m "../../models"
+	"fmt"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/spf13/viper"
 	"log"
 	"math/big"
+	"time"
 )
+
+var Vaulto = new(a.VaultoAPI)
+var Alfa = new(alfaex.AlfaEXAPI)
+var ConnectorDB *gorm.DB
+
+type Connector struct {
+	gorm.Model
+	ExternalID        string
+	ExternalData      string
+	ExternalStatus    int
+	VaultoOrderID     uint
+	VaultoOrderStatus m.OrderStatus
+	VaultoTxHash      string
+}
+
+type Connectors []Connector
+
+func (c *Connectors) FindByExternalId(externalId string) *Connector {
+	for _, c := range []Connector(*c) {
+		if c.ExternalID == externalId {
+			return &c
+		}
+	}
+	return nil
+}
+
+func ProcessOperations() {
+	operations := Alfa.GetOperations()
+	var connector Connectors
+
+	ConnectorDB.Find(&connector)
+
+	for _, o := range operations.Operation {
+		amount := big.Float{}
+		amount.SetString(o.Arguments.Amount)
+		amountFloat, _ := amount.Float64()
+
+		log.Println(o.Id, o.Arguments.Amount, amount.Text('f', 8))
+
+		connectorEntry := connector.FindByExternalId(o.Id)
+
+		if connectorEntry == nil {
+
+			Alfa.PutOperation(alfaex.WithdrawOperation{
+				OperationID: o.Id,
+				State:       -5,
+			})
+
+			orderId, err := Vaulto.CreateOrder(o.Arguments.Currency, o.Arguments.DestinationWallet, amountFloat, o.Id)
+			if err != nil {
+				log.Println("Error creating order for ", o.Id)
+				continue
+			}
+
+			ConnectorDB.Create(&Connector{
+				ExternalID:        o.Id,
+				ExternalData:      "",
+				ExternalStatus:    -5,
+				VaultoOrderID:     orderId,
+				VaultoOrderStatus: m.OrderStatusNew,
+				VaultoTxHash:      "",
+			})
+
+		}
+	}
+
+	for _, connectorEntry := range connector {
+		order, err := Vaulto.GetOrder(connectorEntry.VaultoOrderID)
+		if err != nil {
+			log.Println("Error fetching order")
+			continue
+		}
+		if connectorEntry.VaultoOrderStatus != m.OrderStatusProcessed && order.Status != connectorEntry.VaultoOrderStatus {
+			connectorEntry.VaultoOrderStatus = order.Status
+			if order.Status == m.OrderStatusProcessed {
+				transactions, err := Vaulto.GetOrderTransactions(connectorEntry.VaultoOrderID)
+				if err == nil && len(transactions) > 0 {
+					connectorEntry.VaultoTxHash = transactions[0].TxHash
+				}
+
+				if err != nil {
+					log.Println("Error creating order for ", connectorEntry.ExternalID)
+					continue
+				}
+
+				Alfa.PutOperation(alfaex.WithdrawOperation{
+					OperationID:           connectorEntry.ExternalID,
+					State:                 1,
+					ExternalTransactionID: transactions[0].TxHash,
+				})
+			}
+			ConnectorDB.Save(&connectorEntry)
+		}
+	}
+
+}
 
 func main() {
 	viper.SetConfigName("config.json")
@@ -19,77 +120,32 @@ func main() {
 		return
 	}
 
+	ConnectorDB, err = gorm.Open("sqlite3", "connector.db")
+	ConnectorDB.AutoMigrate(&Connector{})
+
 	publicKey := viper.GetString("public_key")
 	secretKey := viper.GetString("secret_key")
 	externalUrl := viper.GetString("external_url")
-
-	vaulto := a.VaultoAPI{}
 
 	vaultoUrl := viper.GetString("vaulto_url")
 	vaultoUser := viper.GetString("vaulto_user")
 	vaultoPassword := viper.GetString("vaulto_user")
 
-	vaulto.Init(vaultoUrl)
+	Vaulto.Init(vaultoUrl)
 
-	vaulto.Login(vaultoUser, vaultoPassword)
+	Vaulto.Login(vaultoUser, vaultoPassword)
 
-	alfa := alfaex.AlfaEXAPI{}
-	alfa.Init(publicKey, secretKey, externalUrl)
+	Alfa.Init(publicKey, secretKey, externalUrl)
 
-	operations := alfa.GetOperations()
+	go func() {
+		for true {
+			ProcessOperations()
+			time.Sleep(60 * time.Second)
+		}
+	}()
 
-	for _, o := range operations.Operation {
-		amount := big.Float{}
-		amount.SetString(o.Arguments.Amount)
+	log.Println("Press any key to exit")
+	var input string
+	fmt.Scanln(&input, "%s")
 
-		log.Println(o.Id, o.Arguments.Amount, amount.Text('f', 8))
-		/*alfa.PutOperation(alfaex.WithdrawOperation{
-			OperationID: o.Id,
-			State: -5,
-		})*/
-	}
-
-	alfa.GetOperations()
-
-	wallets, err := vaulto.GetWalletsForAsset("ETH")
-	log.Println("Wallets :", err, wallets)
-
-	result, err := vaulto.CreateOrder("ETH", "0xa1894C90D2632850B6c20f217837e626628E5a15", 0.1, "New order")
-	log.Println("OrderData :", err, result)
-
-	orders, err := vaulto.GetOrders()
-	log.Println("Orders :", err, orders)
-
-	/*
-
-		result, err := vaulto.Clear()
-		log.Println("Clear :", err, result)
-
-		result, err = vaulto.Register("user1", "pwd1")
-		log.Println("Register : ", err, result)
-
-		result, err = vaulto.Login("user1", "pwd1")
-		log.Println("Login : ", err, result)
-
-		result, err = vaulto.CreateAsset( "Ethereum", "ETH", 60, 18, 6)
-		log.Println("Create asset : ", err, result)
-
-		assets, err := vaulto.GetAssets()
-		log.Println("Assets : ", assets)
-
-		result, err = vaulto.CreateSeed("Seed1", "")
-		log.Println("Create seed : ", err, result)
-
-		seeds, err := vaulto.GetSeeds()
-		log.Println("Seeds : ", err, seeds)
-
-		result, err = vaulto.CreateWallet( "ETH wallet",  1, 1)
-		log.Println("Create wallet : ", err, result)
-
-		wallets, err := vaulto.GetWallets()
-		log.Println("Wallets : ", wallets)
-
-		result, err = vaulto.CreateAddress( "New address", 1)
-		log.Println("Create address : ", err, result)
-	*/
 }

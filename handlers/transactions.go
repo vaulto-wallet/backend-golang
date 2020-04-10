@@ -4,8 +4,10 @@ import (
 	m "../models"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	"net/http"
+	"strconv"
 )
 
 func CreateTransaction(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
@@ -19,6 +21,15 @@ func CreateTransaction(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	}
 	var r m.Transaction
 	err := json.NewDecoder(req.Body).Decode(&r)
+
+	orders := new([]*m.Order)
+	db.Find(orders, r.OrderIds)
+
+	addresses := new([]*m.Address)
+	db.Find(addresses, r.AddressIds)
+
+	r.Order = *orders
+	r.Address = *addresses
 
 	if err != nil {
 		ReturnError(w, Error(BadRequest))
@@ -74,9 +85,24 @@ func GetTransactions(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	username := req.Context().Value("user")
 	dbUser := m.User{}
 	db.First(&dbUser, "Username = ?", username)
-	var transactions m.Transactions
 
-	db.Find(&transactions)
+	vars := mux.Vars(req)
+
+	var transactions []m.Transaction
+
+	if order, ok := vars["order"]; ok && order != "0" {
+		if orderId, err := strconv.ParseUint(order, 10, 64); err != nil {
+			ReturnError(w, Error(BadRequest))
+		} else {
+			var order m.Order
+			db.First(&order, orderId)
+
+			db.Model(&order).Related(&transactions, "Transaction")
+		}
+	} else {
+		db.Find(&transactions)
+	}
+
 	res, err := json.Marshal(transactions)
 	if err != nil {
 		ReturnError(w, Error(BadRequest))
@@ -91,15 +117,16 @@ func GetTransaction(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	username := req.Context().Value("user")
 	dbUser := m.User{}
 	db.First(&dbUser, "Username = ?", username)
-	var transactions m.Transactions
+	var transaction m.Transaction
 
-	db.Find(&transactions)
-	res, err := json.Marshal(transactions)
-	if err != nil {
+	vars := mux.Vars(req)
+
+	transactionId, _ := strconv.ParseUint(vars["transaction"], 10, 64)
+
+	db.First(&transaction, transactionId)
+	if transactionId == 0 {
 		ReturnError(w, Error(BadRequest))
-		return
 	}
 
-	fmt.Println((string)(res))
-	ReturnResult(w, transactions)
+	ReturnResult(w, transaction)
 }
