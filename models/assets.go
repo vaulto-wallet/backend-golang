@@ -8,9 +8,9 @@ import (
 type AssetType int
 
 const (
-	AssetUnknown = 0
-	AssetBase    = 1
-	AssetERC20   = 2
+	AssetTypeUnknown = 0
+	AssetTypeBase    = 1
+	AssetTypeERC20   = 2
 )
 
 func (a AssetType) String() string {
@@ -27,6 +27,7 @@ type Asset struct {
 	Name      string
 	CoinIndex int
 	Symbol    string `gorm:"unique_index"`
+	Address   string
 	Type      AssetType
 	Decimals  int
 	Rounding  int
@@ -42,19 +43,31 @@ func (a *Asset) Get(db *gorm.DB, asset_id uint) (err interface{}) {
 	return nil
 }
 
+func (ar *Assets) GetBasicAsset(asset_id uint) (ret *Asset) {
+	a := ar.Get(asset_id)
+	if a == nil {
+		return nil
+	}
+	if a.Type == AssetTypeERC20 {
+		ba := ar.Find("ETH")
+		return ba
+	}
+	return a
+}
+
 func (ar *Assets) Find(symbol string) (ret *Asset) {
-	for i, s := range ([]Asset)(*ar) {
+	for _, s := range ([]Asset)(*ar) {
 		if s.Symbol == symbol {
-			return &([]Asset)(*ar)[i]
+			return &s
 		}
 	}
 	return nil
 }
 
-func (ar *Assets) Get(idx uint) (ret *Asset) {
-	for i, s := range ([]Asset)(*ar) {
-		if s.ID == idx {
-			return &([]Asset)(*ar)[i]
+func (ar *Assets) Get(asset_id uint) (ret *Asset) {
+	for _, s := range ([]Asset)(*ar) {
+		if s.ID == asset_id {
+			return &s
 		}
 	}
 	return nil

@@ -34,10 +34,22 @@ func CreateAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	}
 
 	dbWallet := m.Wallet{}
-	db.Set("gorm:auto_preload", true).Find(&dbWallet, r.WalletID)
+	db.Set("gorm:auto_preload", true).First(&dbWallet, r.WalletID)
+
+	if dbWallet.Asset.Type != m.AssetTypeBase {
+		seedId := dbWallet.SeedId
+		assets := new(m.Assets)
+		db.Find(&assets)
+		basicAsset := assets.GetBasicAsset(dbWallet.AssetId)
+		if basicAsset.ID == 0 {
+			ReturnError(w, Error(BadRequest))
+		}
+
+		db.First(&dbWallet, "asset_id = ? AND seed_id = ?", basicAsset.ID, seedId)
+	}
 
 	if dbWallet.ID == 0 {
-		ReturnError(w, Error(BadRequest))
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Wallet not found")
 		return
 	}
 	private_key, address := hlp.GenerateAddress(dbWallet.Asset.Symbol, dbWallet.Seed.Seed, dbWallet.ChangeN, dbWallet.N)
@@ -45,7 +57,7 @@ func CreateAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	modelAddress := m.Address{
 		Address:    address,
 		PrivateKey: private_key,
-		WalletID:   r.WalletID,
+		WalletID:   dbWallet.ID,
 		N:          dbWallet.N,
 		Change:     0,
 		Comment:    "",
@@ -69,9 +81,23 @@ func GetAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 
 	walletId, _ := strconv.ParseUint(vars["wallet"], 10, 64)
 
+	dbWallet := new(m.Wallet)
+	db.Set("gorm:auto_preload", true).First(&dbWallet, walletId)
+	if dbWallet == nil {
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Cannot find wallet")
+	}
+	if dbWallet.Asset.Type != m.AssetTypeBase {
+		seedId := dbWallet.SeedId
+		assets := new(m.Assets)
+		db.Find(assets)
+		basicAsset := assets.GetBasicAsset(dbWallet.AssetId)
+		dbWallet = new(m.Wallet)
+		db.First(&dbWallet, "asset_id = ? AND seed_id = ?", basicAsset.ID, seedId)
+	}
+
 	var addresses m.Addresses
 
-	db.Find(&addresses, "wallet_id = ?", walletId)
+	db.Find(&addresses, "wallet_id = ?", dbWallet.ID)
 
 	res, err := json.Marshal(addresses)
 	if err != nil {

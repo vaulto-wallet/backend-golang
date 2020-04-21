@@ -10,6 +10,8 @@ package builder
 // #include <TrustWalletCore/TWAnySigner.h>
 // #include <TrustWalletCore/TWCurve.h>
 // #include <TrustWalletCore/TWCoinType.h>
+// #include <TrustWalletCore/TWEthereumAbiEncoder.h>
+// #include <TrustWalletCore/TWEthereumAbiFunction.h>
 import "C"
 
 import (
@@ -21,7 +23,7 @@ import (
 import "encoding/hex"
 import "../../../proto/Ethereum"
 
-func BuildEthereum(private_key []byte, to string, value big.Int, gasLimit big.Int, gasPrice big.Int, nonce big.Int) (tx string) {
+func BuildEthereum(private_key []byte, to string, value big.Int, gasLimit big.Int, gasPrice big.Int, nonce big.Int, payload []byte) (tx string) {
 	//wallet := C.TWHDWalletCreateWithData(h.TWDataCreateWithGoBytes(keyData), "")
 
 	//keyData := C.TWPrivateKeyCreateWithData(h.TWDataCreateWithGoBytes(private_key))
@@ -36,6 +38,7 @@ func BuildEthereum(private_key []byte, to string, value big.Int, gasLimit big.In
 	input.GasPrice = gasPrice.Bytes()
 	input.Nonce = nonce.Bytes()
 	input.ToAddress = to
+	input.Payload = payload
 
 	out, _ := input.XXX_Marshal(nil, true)
 
@@ -46,4 +49,23 @@ func BuildEthereum(private_key []byte, to string, value big.Int, gasLimit big.In
 	output.XXX_Unmarshal(h.TWDataGoBytes(unsafe.Pointer(ethout)))
 	log.Println("buildEtehreum tx :", hex.EncodeToString(output.Encoded))
 	return hex.EncodeToString(output.Encoded)
+}
+
+func BuildERC20Transfer(to string, value big.Int) []byte {
+	toHex := to
+	if toHex[0:2] == "0x" {
+		toHex = toHex[2:]
+	}
+	addressInt, _ := new(big.Int).SetString(toHex, 16)
+
+	abiFx := C.TWEthereumAbiEncoderBuildFunction(h.TWStringCreateWithGoString("transfer"))
+	valueData := h.TWDataCreateWithGoBytes(value.Bytes())
+	toData := h.TWDataCreateWithGoBytes(addressInt.Bytes())
+	C.TWEthereumAbiFunctionAddParamAddress(abiFx, toData, false)
+	C.TWEthereumAbiFunctionAddParamUInt256(abiFx, valueData, false)
+
+	encoded := C.TWEthereumAbiEncoderEncode(abiFx)
+
+	return h.TWDataGoBytes(encoded)
+
 }

@@ -1,5 +1,6 @@
 package main
 
+import "C"
 import (
 	"../../api/blockatlas"
 	"../../api/vaulto"
@@ -30,7 +31,7 @@ func processOrders() {
 		if o.Status == m.OrderStatusNew {
 			log.Println("Processing order")
 
-			gasPrice, _ := Blockatlas.GasPrice(Assets.Get(o.AssetId).Symbol)
+			gasPrice, _ := Blockatlas.GasPrice(Assets.Get(Assets.GetBasicAsset(o.AssetId).ID).Symbol)
 
 			asset := Assets.Find(o.Symbol)
 			if asset == nil {
@@ -61,20 +62,39 @@ func processOrders() {
 
 			address := addresses[0]
 
-			tx := builder.BuildEthereum([]byte(address.PrivateKey),
-				o.AddressTo,
-				*asset.ToBigInt(o.Amount),
-				*new(big.Int).SetInt64(21000),
-				*new(big.Int).SetInt64(gasPrice),
-				*new(big.Int).SetUint64(address.Seqno))
+			if asset.Symbol == "ETH" {
+				tx := builder.BuildEthereum([]byte(address.PrivateKey),
+					o.AddressTo,
+					*asset.ToBigInt(o.Amount),
+					*new(big.Int).SetInt64(21000),
+					*new(big.Int).SetInt64(gasPrice),
+					*new(big.Int).SetUint64(address.Seqno),
+					[]byte{})
 
-			log.Println("Transaction built", tx)
+				log.Println("ETH Transaction built", tx)
+				txId, err := Vaulto.CreateTransaction(asset.ID, wallet.ID, []uint{o.ID}, []uint{address.ID}, "", tx, "")
+				log.Println("Transaction saved. ID : ", txId, err)
+				Vaulto.UpdateOrder(o.ID, m.OrderStatusProcessing)
+				Vaulto.UpdateAddress(address.ID, "", "", address.Seqno+1)
+			} else if asset.Type == m.AssetTypeERC20 {
+				payload := builder.BuildERC20Transfer(o.AddressTo, *asset.ToBigInt(o.Amount))
+				tx := builder.BuildEthereum([]byte(address.PrivateKey),
+					asset.Address,
+					*new(big.Int).SetInt64(0),
+					*new(big.Int).SetInt64(200000),
+					*new(big.Int).SetInt64(gasPrice),
+					*new(big.Int).SetUint64(address.Seqno),
+					payload)
 
-			txId, err := Vaulto.CreateTransaction(asset.ID, wallet.ID, []uint{o.ID}, []uint{address.ID}, "", tx, "")
-			log.Println("Transaction saved. ID : ", txId)
+				txId, err := Vaulto.CreateTransaction(Assets.GetBasicAsset(asset.ID).ID, wallet.ID, []uint{o.ID}, []uint{address.ID}, "", tx, "")
+				log.Println("Transaction saved. ID : ", txId, err)
 
-			Vaulto.UpdateOrder(o.ID, m.OrderStatusProcessing)
-			Vaulto.UpdateAddress(address.ID, "", "", address.Seqno+1)
+				log.Println("ERC20 Transaction built", tx)
+				Vaulto.UpdateOrder(o.ID, m.OrderStatusProcessing)
+				Vaulto.UpdateAddress(address.ID, "", "", address.Seqno+1)
+			} else {
+
+			}
 		}
 
 		if o.Status == m.OrderStatusProcessing || o.Status == m.OrderStatusPartiallyProcessed {

@@ -13,6 +13,8 @@ import "unsafe"
 // #include <TrustWalletCore/TWAnySigner.h>
 // #include <TrustWalletCore/TWCurve.h>
 // #include <TrustWalletCore/TWCoinType.h>
+// #include <TrustWalletCore/TWEthereumAbiEncoder.h>
+// #include <TrustWalletCore/TWEthereumAbiFunction.h>
 import "C"
 
 import (
@@ -80,6 +82,19 @@ func main() {
 	address := C.TWHDWalletGetAddressForCoin(wallet, C.TWCoinTypeEthereum)
 	fmt.Println("<== ethereum address: ", TWStringGoString(address))
 
+	abiFx := C.TWEthereumAbiEncoderBuildFunction(TWStringCreateWithGoString("transfer"))
+	addressInt, _ := new(big.Int).SetString("C37054b3b48C3317082E7ba872d7753D13da4986", 16)
+	valueInt, _ := new(big.Int).SetString("10000000000", 10)
+
+	to := TWDataCreateWithGoBytes(addressInt.Bytes())
+	value := TWDataCreateWithGoBytes(valueInt.Bytes())
+	p1 := C.TWEthereumAbiFunctionAddParamAddress(abiFx, to, false)
+	p2 := C.TWEthereumAbiFunctionAddParamUInt256(abiFx, value, false)
+
+	encoded := C.TWEthereumAbiEncoderEncode(abiFx)
+
+	fmt.Println("ABI", p1, p2, TWDataGoBytes(encoded))
+
 	is_valid_priv := C.TWPrivateKeyIsValid(keyData, C.TWCurveSECP256k1)
 	fmt.Println("Valid", is_valid_priv)
 
@@ -91,6 +106,7 @@ func main() {
 	input.GasPrice = new(big.Int).SetInt64(4).Bytes()
 	input.Nonce = new(big.Int).SetInt64(1).Bytes()
 	input.ToAddress = "0xC37054b3b48C3317082E7ba872d7753D13da4986"
+	input.Payload = TWDataGoBytes(encoded)
 
 	fmt.Println(input.String())
 

@@ -92,17 +92,18 @@ func (a *VaultoAPI) Register(username string, password string) (int64, error) {
 	return int64(response.Result.(float64)), nil
 }
 
-func (a *VaultoAPI) CreateAsset(name string, symbol string, index int, decimals int, rounding int) (int64, error) {
+func (a *VaultoAPI) CreateAsset(assetType m.AssetType, name string, symbol string, index int, decimals int, rounding int, token_address string) (uint, error) {
 	resp, err := a.Request("POST", "/assets", m.Asset{
 		Name:      name,
 		CoinIndex: index,
 		Symbol:    symbol,
-		Type:      1,
+		Type:      assetType,
+		Address:   token_address,
 		Decimals:  decimals,
 		Rounding:  rounding,
 	})
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
 	log.Print(string(resp))
@@ -111,9 +112,9 @@ func (a *VaultoAPI) CreateAsset(name string, symbol string, index int, decimals 
 	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
 
 	if len(response.Error) > 0 {
-		return -1, errors.New(response.ErrorText)
+		return 0, errors.New(response.ErrorText)
 	}
-	return int64(response.Result.(float64)), nil
+	return uint(response.Result.(float64)), nil
 }
 
 func (a *VaultoAPI) GetAssets() (m.Assets, error) {
@@ -137,10 +138,10 @@ func (a *VaultoAPI) GetAssets() (m.Assets, error) {
 	return ar, nil
 }
 
-func (a *VaultoAPI) CreateSeed(name string, mnemonic string) (int64, error) {
+func (a *VaultoAPI) CreateSeed(name string, mnemonic string) (uint, error) {
 	resp, err := a.Request("POST", "/seeds", SeedRequest{name, mnemonic})
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 	log.Print(string(resp))
 
@@ -148,9 +149,9 @@ func (a *VaultoAPI) CreateSeed(name string, mnemonic string) (int64, error) {
 	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
 
 	if len(response.Error) > 0 {
-		return -1, errors.New(response.ErrorText)
+		return 0, errors.New(response.ErrorText)
 	}
-	return int64(response.Result.(float64)), nil
+	return uint(response.Result.(float64)), nil
 }
 
 func (a *VaultoAPI) GetSeeds() (interface{}, error) {
@@ -168,23 +169,23 @@ func (a *VaultoAPI) GetSeeds() (interface{}, error) {
 	return response.Result, nil
 }
 
-func (a *VaultoAPI) CreateWallet(name string, seedId uint, assetId uint) (int64, error) {
+func (a *VaultoAPI) CreateWallet(name string, seedId uint, assetId uint) (uint, error) {
 	resp, err := a.Request("POST", "/wallets", m.Wallet{
 		Name:    name,
 		AssetId: assetId,
 		SeedId:  seedId,
 	})
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
 	var response ResponseInterface
 	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
 
 	if len(response.Error) > 0 {
-		return -1, errors.New(response.ErrorText)
+		return 0, errors.New(response.ErrorText)
 	}
-	return int64(response.Result.(float64)), nil
+	return uint(response.Result.(float64)), nil
 }
 
 func (a *VaultoAPI) GetWallets() ([]m.Wallet, error) {
@@ -229,22 +230,22 @@ func (a *VaultoAPI) GetWalletsForAsset(asset string) ([]m.Wallet, error) {
 	return response.Result, nil
 }
 
-func (a *VaultoAPI) CreateAddress(name string, walletId int) (int64, error) {
+func (a *VaultoAPI) CreateAddress(name string, walletId uint) (uint, error) {
 	resp, err := a.Request("POST", "/address", m.Address{
 		Name:     name,
 		WalletID: walletId,
 	})
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
 	var response ResponseInterface
 	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
 
 	if len(response.Error) > 0 {
-		return -1, errors.New(response.ErrorText)
+		return 0, errors.New(response.ErrorText)
 	}
-	return int64(response.Result.(float64)), nil
+	return uint(response.Result.(float64)), nil
 }
 
 func (a *VaultoAPI) UpdateAddress(address_id uint, address string, balance string, seqno uint64) (bool, error) {
@@ -263,20 +264,18 @@ func (a *VaultoAPI) UpdateAddress(address_id uint, address string, balance strin
 	if len(response.Error) > 0 {
 		return false, errors.New(response.ErrorText)
 	}
-	return bool(response.Result.(bool)), nil
+	return response.Result.(bool), nil
 }
 
 func (a *VaultoAPI) GetAddressesForWallet(wallet uint) ([]m.Address, error) {
 	resp, err := a.Request("GET", "/address/"+strconv.Itoa(int(wallet)), nil)
 
-	//	var addresses []m.Address
 	addresses := new([]m.Address)
 
 	if err != nil {
 		return *addresses, err
 	}
 
-	//var response ResponseInterface
 	var response struct {
 		Error     string
 		ErrorText string
@@ -289,16 +288,6 @@ func (a *VaultoAPI) GetAddressesForWallet(wallet uint) ([]m.Address, error) {
 		return *addresses, errors.New(response.ErrorText)
 	}
 
-	//var wr m.Addresses
-	/*
-		buf := new(bytes.Buffer)
-		json.NewEncoder(buf).Encode(response.Result)
-		for _, v := range response.Result.([]interface{}) {
-			address := new(m.Address)
-			mapstructure.Decode(v, address )
-			*addresses = append(*addresses, *address)
-		}
-		return *addresses, nil*/
 	return response.Result, nil
 }
 

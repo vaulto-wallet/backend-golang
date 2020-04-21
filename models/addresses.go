@@ -9,7 +9,7 @@ type Address struct {
 	Name       string  `json:"name,omitempty"`
 	Address    string  `json:"address,omitempty"`
 	PrivateKey string  `json:"private_key,omitempty"`
-	WalletID   int     `json:"wallet_id,omitempty"`
+	WalletID   uint    `json:"wallet_id,omitempty"`
 	N          uint32  `json:"n,omitempty"`
 	Change     uint32  `json:"change,omitempty"`
 	Comment    string  `json:"comment,omitempty"`
