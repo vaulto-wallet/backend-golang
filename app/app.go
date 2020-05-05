@@ -4,6 +4,7 @@ import (
 	h "../handlers"
 	mw "../middlewares"
 	m "../models"
+	"context"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -13,8 +14,9 @@ import (
 
 // App has router and db instances
 type App struct {
-	Router *mux.Router
-	DB     *gorm.DB
+	Router         *mux.Router
+	DB             *gorm.DB
+	MasterPassword []byte
 }
 
 // App initialize with predefined configuration
@@ -52,20 +54,25 @@ func (a *App) Delete(path string, f func(w http.ResponseWriter, r *http.Request)
 
 func (a *App) Run(host string) {
 	a.Router.Use(mw.LoggingMiddleware)
-	a.Router.Use(mw.AuthMiddleware)
+	a.Router.Use(mw.AuthMiddlewareGenerator(a.DB))
+	a.Router.Use(mw.TwoFAMiddlewareGenerator(a.DB))
 	log.Fatal(http.ListenAndServe(host, a.Router))
 }
 
 func (a *App) setRouters() {
-	a.Get("/api/clear", a.Clear)
+	a.Post("/api/clear", a.Clear)
+	a.Post("/api/start", a.Start)
 	a.Post("/api/users/login", a.Login)
 	a.Post("/api/users/register", a.Register)
 	a.Post("/api/account", a.CreateAccount)
 	a.Post("/api/seeds", a.CreateSeed)
 	a.Get("/api/seeds", a.GetSeeds)
 	a.Post("/api/wallets", a.CreateWallet)
+	a.Put("/api/wallets/share/{wallet}", a.ShareWallet)
 	a.Get("/api/wallets", a.GetWallets)
 	a.Get("/api/wallets/{asset}", a.GetWalletsForAsset)
+	a.Get("/api/wallet/orders/{wallet}", a.GetOrders)
+	a.Get("/api/wallet/transactions/{wallet}", a.GetTransactions)
 	a.Post("/api/assets", a.CreateAsset)
 	a.Get("/api/assets", a.GetAssets)
 	a.Post("/api/orders", a.CreateOrder)
@@ -79,7 +86,8 @@ func (a *App) setRouters() {
 	a.Post("/api/transactions", a.CreateTransaction)
 	a.Get("/api/transactions", a.GetTransactions)
 	a.Put("/api/transactions", a.UpdateTransaction)
-	a.Get("/api/transaction/{transaction}", a.GetTransaction)
+	a.Get("/api/transaction/id/{id}", a.GetTransaction)
+	a.Get("/api/transaction/txhash/{txhash}", a.GetTransaction)
 
 }
 
@@ -88,6 +96,10 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) Register(w http.ResponseWriter, r *http.Request) {
 	h.UserRegister(a.DB, w, r)
+}
+
+func (a *App) Start(w http.ResponseWriter, r *http.Request) {
+	a.MasterPassword = h.Start(a.DB, w, r)
 }
 
 func (a *App) CreateAccount(w http.ResponseWriter, r *http.Request) {
@@ -109,6 +121,8 @@ func (a *App) GetAssets(w http.ResponseWriter, r *http.Request) {
 
 // Seeds
 func (a *App) CreateSeed(w http.ResponseWriter, r *http.Request) {
+	ctx := context.WithValue(r.Context(), "masterPassword", a.MasterPassword)
+	r = r.WithContext(ctx)
 	h.CreateSeed(a.DB, w, r)
 }
 
@@ -118,7 +132,13 @@ func (a *App) GetSeeds(w http.ResponseWriter, r *http.Request) {
 
 // Wallets
 func (a *App) CreateWallet(w http.ResponseWriter, r *http.Request) {
+	context.WithValue(r.Context(), "masterPassword", a.MasterPassword)
 	h.CreateWallet(a.DB, w, r)
+}
+
+func (a *App) ShareWallet(w http.ResponseWriter, r *http.Request) {
+	context.WithValue(r.Context(), "masterPassword", a.MasterPassword)
+	h.ShareWallet(a.DB, w, r)
 }
 
 func (a *App) GetWallets(w http.ResponseWriter, r *http.Request) {
@@ -152,6 +172,8 @@ func (a *App) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 
 // Addresses
 func (a *App) CreateAddress(w http.ResponseWriter, r *http.Request) {
+	ctx := context.WithValue(r.Context(), "masterPassword", a.MasterPassword)
+	r = r.WithContext(ctx)
 	h.CreateAddress(a.DB, w, r)
 }
 

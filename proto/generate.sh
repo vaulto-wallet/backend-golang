@@ -27,12 +27,11 @@ $PROTOC --version
 
 rm -rf Ethereum
 mkdir Ethereum
+rm -rf Bitcoin
+mkdir Bitcoin
 
 
 "$PROTOC" -I=../wallet-core/src/proto --plugin=$GOPATH/bin/protoc-gen-go --go_out=./Ethereum ../wallet-core/src/proto/Ethereum.proto
+"$PROTOC" -I=../wallet-core/src/proto --plugin=$GOPATH/bin/protoc-gen-go --go_out=./Bitcoin ../wallet-core/src/proto/Bitcoin.proto
 
 
-rm -rf Any
-mkdir Any
-
-"$PROTOC" -I=../wallet-core/src/proto --plugin=$GOPATH/bin/protoc-gen-go --go_out=./Any ../wallet-core/src/proto/Any.proto

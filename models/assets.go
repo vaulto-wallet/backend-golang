@@ -1,6 +1,8 @@
 package models
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/jinzhu/gorm"
 	"math/big"
 )
@@ -35,9 +37,15 @@ type Asset struct {
 
 type Assets []Asset
 
-func (a *Asset) Get(db *gorm.DB, asset_id uint) (err interface{}) {
-	db.First(&a, "ID = ?", asset_id)
-	if a.ID == 0 {
+func (o Asset) String() string {
+	var ret bytes.Buffer
+	fmt.Fprintf(&ret, "{ID:%d Symbol:%s Name:%s CoinIndex:%d Type:%s}", o.ID, o.Symbol, o.Name, o.CoinIndex, o.Type)
+	return ret.String()
+}
+
+func (o *Asset) Load(db *gorm.DB, asset_id uint) (err interface{}) {
+	db.First(&o, "ID = ?", asset_id)
+	if o.ID == 0 {
 		return "Asset not found"
 	}
 	return nil
@@ -73,19 +81,19 @@ func (ar *Assets) Get(asset_id uint) (ret *Asset) {
 	return nil
 }
 
-func (a *Asset) ToBigInt(value float64) (ret *big.Int) {
+func (o *Asset) ToBigInt(value float64) (ret *big.Int) {
 	e := new(big.Int)
 	r := new(big.Float)
-	e.Exp(big.NewInt(10), big.NewInt(int64(a.Decimals)), nil)
+	e.Exp(big.NewInt(10), big.NewInt(int64(o.Decimals)), nil)
 	r.SetFloat64(value).Mul(r, new(big.Float).SetInt(e))
 	ret, _ = r.Int(nil)
 	return
 }
 
-func (a *Asset) ToFloat(value *big.Int) (ret float64) {
+func (o *Asset) ToFloat(value *big.Int) (ret float64) {
 	e := new(big.Int)
 	r := new(big.Float)
-	e.Exp(big.NewInt(10), big.NewInt(int64(a.Decimals)), nil)
+	e.Exp(big.NewInt(10), big.NewInt(int64(o.Decimals)), nil)
 	r.SetInt(value)
 	ret, _ = new(big.Float).Quo(r, new(big.Float).SetInt(e)).Float64()
 	return

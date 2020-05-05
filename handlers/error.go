@@ -21,6 +21,8 @@ const (
 	TokenMissing
 	TokenInvalid
 	TokenMalformed
+	NotInitialized
+	NotAuthorized
 )
 
 func (error_code Error) String() string {
@@ -34,6 +36,8 @@ func (error_code Error) String() string {
 		"AUTH_TOKEN_MISSING",
 		"AUTH_TOKEN_INVALID",
 		"AUTH_TOKEN_MALFORMED",
+		"NOT_INITIALIZED",
+		"NOT_AUTHORIZED",
 	}
 
 	return error_text[error_code]

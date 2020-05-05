@@ -47,8 +47,19 @@ func (a *VaultoAPI) Request(method string, endpoint string, data interface{}) ([
 	return body, nil
 }
 
-func (a *VaultoAPI) Clear() (bool, error) {
-	resp, err := a.Request("GET", "/clear", nil)
+func (a *VaultoAPI) Clear(password string) (bool, error) {
+	resp, err := a.Request("POST", "/clear", LoginRequest{Password: password})
+	if err != nil {
+		return false, err
+	}
+	var response ResponseBool
+	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
+
+	return response.Result, nil
+}
+
+func (a *VaultoAPI) Start(password string) (bool, error) {
+	resp, err := a.Request("POST", "/start", LoginRequest{Password: password})
 	if err != nil {
 		return false, err
 	}
@@ -77,19 +88,19 @@ func (a *VaultoAPI) Login(username string, password string) (bool, error) {
 	return true, nil
 }
 
-func (a *VaultoAPI) Register(username string, password string) (int64, error) {
+func (a *VaultoAPI) Register(username string, password string) (uint, error) {
 	resp, err := a.Request("POST", "/users/register", LoginRequest{username, password})
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 	var response ResponseInterface
 	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
 
 	if len(response.Error) > 0 {
-		return -1, errors.New(response.ErrorText)
+		return 0, errors.New(response.ErrorText)
 	}
 
-	return int64(response.Result.(float64)), nil
+	return uint(response.Result.(float64)), nil
 }
 
 func (a *VaultoAPI) CreateAsset(assetType m.AssetType, name string, symbol string, index int, decimals int, rounding int, token_address string) (uint, error) {
@@ -186,6 +197,21 @@ func (a *VaultoAPI) CreateWallet(name string, seedId uint, assetId uint) (uint, 
 		return 0, errors.New(response.ErrorText)
 	}
 	return uint(response.Result.(float64)), nil
+}
+
+func (a *VaultoAPI) ShareWallet(walletId uint, owners []uint) (bool, error) {
+	resp, err := a.Request("PUT", "/wallets/share/"+strconv.Itoa(int(walletId)), struct {
+		Owners []uint `json:"owners"`
+	}{
+		Owners: owners,
+	})
+	if err != nil {
+		return false, err
+	}
+
+	var response ResponseInterface
+	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
+	return response.Result.(bool), nil
 }
 
 func (a *VaultoAPI) GetWallets() ([]m.Wallet, error) {
@@ -308,10 +334,10 @@ func (a *VaultoAPI) UpdateOrder(orderId uint, status m.OrderStatus) (bool, error
 	return response.Result.(bool), nil
 }
 
-func (a *VaultoAPI) CreateOrder(asset string, address_to string, amount float64, comment string) (uint, error) {
+func (a *VaultoAPI) CreateOrder(walletId uint, addressTo string, amount float64, comment string) (uint, error) {
 	resp, err := a.Request("POST", "/orders", m.Order{
-		Symbol:    asset,
-		AddressTo: address_to,
+		WalletId:  walletId,
+		AddressTo: addressTo,
 		Amount:    amount,
 		Comment:   comment,
 	})
@@ -330,6 +356,27 @@ func (a *VaultoAPI) CreateOrder(asset string, address_to string, amount float64,
 
 func (a *VaultoAPI) GetOrders() (m.Orders, error) {
 	resp, err := a.Request("GET", "/orders", nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var response ResponseInterface
+	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
+
+	if len(response.Error) > 0 {
+		return nil, errors.New(response.ErrorText)
+	}
+
+	var orders m.Orders
+	buf := new(bytes.Buffer)
+	json.NewEncoder(buf).Encode(response.Result)
+	json.NewDecoder(buf).Decode(&orders)
+	return orders, nil
+}
+
+func (a *VaultoAPI) GetOrdersForWallet(walletId uint) (m.Orders, error) {
+	resp, err := a.Request("GET", "/wallet/orders/"+strconv.Itoa(int(walletId)), nil)
 
 	if err != nil {
 		return nil, err
@@ -369,30 +416,30 @@ func (a *VaultoAPI) GetOrder(orderId uint) (m.Order, error) {
 	return response.Result, nil
 }
 
-func (a *VaultoAPI) CreateTransaction(assetId uint, walletId uint, orderIds []uint, addressIds []uint,
-	txHash string, tx string, txData string) (int64, error) {
+func (a *VaultoAPI) CreateTransaction(assetIds []uint, walletIds []uint, orderIds []uint, addressIds []uint,
+	txHash string, tx string, txData string) (uint, error) {
 
 	resp, err := a.Request("POST", "/transactions", m.Transaction{
-		Name:       "",
-		AssetId:    assetId,
-		WalletId:   walletId,
-		OrderIds:   orderIds,
-		AddressIds: addressIds,
-		TxHash:     txHash,
-		Tx:         tx,
-		TxData:     txData,
-		Status:     m.TransactionStatusNew,
+		Name:      "",
+		AssetId:   assetIds,
+		WalletId:  walletIds,
+		OrderId:   orderIds,
+		AddressId: addressIds,
+		TxHash:    txHash,
+		Tx:        tx,
+		TxData:    txData,
+		Status:    m.TransactionStatusNew,
 	})
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 	var response ResponseInterface
 	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
 
 	if len(response.Error) > 0 {
-		return -1, errors.New(response.ErrorText)
+		return 0, errors.New(response.ErrorText)
 	}
-	return int64(response.Result.(float64)), nil
+	return uint(response.Result.(float64)), nil
 
 }
 
@@ -439,6 +486,26 @@ func (a *VaultoAPI) GetTransactions() ([]m.Transaction, error) {
 	return response.Result, nil
 }
 
+func (a *VaultoAPI) GetTransactionsForWallet(walletId uint) ([]m.Transaction, error) {
+	resp, err := a.Request("GET", "/wallet/transactions/"+strconv.Itoa(int(walletId)), nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var response struct {
+		ResponseError
+		Result []m.Transaction `json:"result"`
+	}
+	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
+
+	if len(response.Error) > 0 {
+		return nil, errors.New(response.ErrorText)
+	}
+
+	return response.Result, nil
+}
+
 func (a *VaultoAPI) GetOrderTransactions(orderId uint) ([]m.Transaction, error) {
 	resp, err := a.Request("GET", "/order/"+strconv.Itoa(int(orderId))+"/txs", nil)
 
@@ -457,4 +524,46 @@ func (a *VaultoAPI) GetOrderTransactions(orderId uint) ([]m.Transaction, error) 
 	}
 
 	return response.Result, nil
+}
+
+func (a *VaultoAPI) GetTransactionById(id uint) (*m.Transaction, error) {
+	transaction_id := strconv.Itoa(int(id))
+
+	resp, err := a.Request("GET", "/transaction/id/"+transaction_id, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var response struct {
+		ResponseError
+		Result m.Transaction `json:"result"`
+	}
+	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
+
+	if len(response.Error) > 0 {
+		return nil, errors.New(response.ErrorText)
+	}
+
+	return &response.Result, nil
+}
+
+func (a *VaultoAPI) GetTransactionByHash(txHash string) (*m.Transaction, error) {
+	resp, err := a.Request("GET", "/transaction/txhash/"+txHash, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var response struct {
+		ResponseError
+		Result m.Transaction `json:"result"`
+	}
+	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
+
+	if len(response.Error) > 0 {
+		return nil, errors.New(response.ErrorText)
+	}
+
+	return &response.Result, nil
 }

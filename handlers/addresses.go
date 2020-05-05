@@ -1,10 +1,11 @@
 package handlers
 
 import (
+	h "../helpers"
+	hlp "../helpers"
 	m "../models"
-	hlp "../trusthelpers"
+	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	"math/big"
@@ -13,14 +14,8 @@ import (
 )
 
 func CreateAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
-	username := req.Context().Value("user")
-	dbUser := m.User{}
-	db.First(&dbUser, "Username = ?", username)
-
-	if dbUser.ID == 0 {
-		ReturnError(w, Error(NoUser))
-		return
-	}
+	//user := req.Context().Value("user").(*m.User)
+	masterPassword := req.Context().Value("masterPassword")
 
 	var r m.Address
 	err := json.NewDecoder(req.Body).Decode(&r)
@@ -34,7 +29,7 @@ func CreateAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	}
 
 	dbWallet := m.Wallet{}
-	db.Set("gorm:auto_preload", true).First(&dbWallet, r.WalletID)
+	db.Preload("Asset").Preload("Seed").First(&dbWallet, r.WalletID)
 
 	if dbWallet.Asset.Type != m.AssetTypeBase {
 		seedId := dbWallet.SeedId
@@ -52,11 +47,33 @@ func CreateAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Wallet not found")
 		return
 	}
-	private_key, address := hlp.GenerateAddress(dbWallet.Asset.Symbol, dbWallet.Seed.Seed, dbWallet.ChangeN, dbWallet.N)
+
+	systemPrivKey := m.ConfigRecord{Name: "PrivateKey"}.Get(db)
+	systemPublicKey := m.ConfigRecord{Name: "PublicKey"}.Get(db)
+
+	encryptedSeed, err := hex.DecodeString(dbWallet.Seed.Seed)
+	if err != nil {
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Cannot decode seed")
+		return
+	}
+
+	decryptedSeed, err := h.DecryptWithRSA(masterPassword.([]byte), []byte(systemPrivKey.Value), encryptedSeed)
+	if err != nil {
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Cannot decrypt seed code : "+err.Error())
+		return
+	}
+
+	privateKey, address := hlp.GenerateAddress(dbWallet.Asset.Symbol, hex.EncodeToString(decryptedSeed), dbWallet.ChangeN, dbWallet.N)
+
+	encryptedPrivateKey, err := h.EncryptWithRSA([]byte(systemPublicKey.Value), privateKey)
+	if err != nil {
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Cannot encrypt seed code")
+		return
+	}
 
 	modelAddress := m.Address{
 		Address:    address,
-		PrivateKey: private_key,
+		PrivateKey: hex.EncodeToString(encryptedPrivateKey),
 		WalletID:   dbWallet.ID,
 		N:          dbWallet.N,
 		Change:     0,
@@ -73,18 +90,24 @@ func CreateAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 }
 
 func GetAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
-	username := req.Context().Value("user")
-	dbUser := m.User{}
-	db.First(&dbUser, "Username = ?", username)
+	//user := req.Context().Value("user")
 
 	vars := mux.Vars(req)
+	var addresses m.Addresses
+
+	if walletIdReq, ok := vars["wallet"]; !ok || walletIdReq == "0" {
+		db.Find(&addresses)
+		ReturnResult(w, addresses)
+		return
+	}
 
 	walletId, _ := strconv.ParseUint(vars["wallet"], 10, 64)
 
 	dbWallet := new(m.Wallet)
-	db.Set("gorm:auto_preload", true).First(&dbWallet, walletId)
-	if dbWallet == nil {
-		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Cannot find wallet")
+	db.Preload("Asset").First(&dbWallet, walletId)
+	if dbWallet.ID == 0 {
+		ReturnErrorWithStatusString(w, Error(BadRequest), http.StatusBadRequest, "Cannot find wallet")
+		return
 	}
 	if dbWallet.Asset.Type != m.AssetTypeBase {
 		seedId := dbWallet.SeedId
@@ -95,17 +118,8 @@ func GetAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		db.First(&dbWallet, "asset_id = ? AND seed_id = ?", basicAsset.ID, seedId)
 	}
 
-	var addresses m.Addresses
-
 	db.Find(&addresses, "wallet_id = ?", dbWallet.ID)
 
-	res, err := json.Marshal(addresses)
-	if err != nil {
-		ReturnErrorWithStatusString(w, Error(BadRequest), 400, err.Error())
-		return
-	}
-
-	fmt.Println((string)(res))
 	ReturnResult(w, addresses)
 }
 
@@ -140,7 +154,7 @@ func UpdateAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 
 	var dbWallet m.Wallet
 
-	db.Set("gorm:auto_preload", true).Find(&dbWallet, dbAddress.WalletID)
+	db.Preload("Asset").Find(&dbWallet, dbAddress.WalletID)
 
 	if dbWallet.ID == 0 {
 		ReturnError(w, Error(BadRequest))
@@ -164,7 +178,7 @@ func UpdateAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		dbAddress.Seqno = r.Seqno
 	}
 
-	db.Save(&dbAddress)
+	db.Model(&dbAddress).Updates(struct{ Seqno uint64 }{dbAddress.Seqno})
 
 	ReturnResult(w, true)
 }

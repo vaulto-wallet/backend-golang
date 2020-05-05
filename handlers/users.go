@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	h "../helpers"
 	m "../models"
 	"crypto/sha256"
 	"encoding/hex"
@@ -8,6 +9,7 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
+	"github.com/xlzd/gotp"
 	"log"
 	"net/http"
 )
@@ -26,7 +28,7 @@ func UserLogin(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	db.First(&dbUser, "Username = ?", user.Username)
+	db.Preloads("Accounts").First(&dbUser, "Username = ?", user.Username)
 	if dbUser.ID == 0 {
 		ReturnError(w, Error(NoUser))
 		return
@@ -70,11 +72,56 @@ func UserRegister(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	h := sha256.New()
-	h.Write([]byte(user.Password))
-	dbUser = m.User{Username: user.Username, Password: hex.EncodeToString(h.Sum(nil))}
+	passwordHash := sha256.Sum256([]byte(user.Password))
+
+	priv, pub := h.GenerateRSAKey(passwordHash[:])
+
+	a := m.Account{
+		Name:       "",
+		PublicKey:  hex.EncodeToString(pub),
+		PrivateKey: hex.EncodeToString(priv),
+		OTPKey:     gotp.RandomSecret(12),
+		OTPStatus:  m.OTPStatusNew,
+	}
+
+	db.Create(&a)
+
+	dbUser = m.User{Username: user.Username, Password: hex.EncodeToString(passwordHash[:]), Account: a}
 	db.Create(&dbUser)
+
 	ReturnResult(w, dbUser.ID)
+}
+
+func Start(db *gorm.DB, w http.ResponseWriter, req *http.Request) []byte {
+	InitReq := struct {
+		Password string `json:"password"`
+	}{}
+
+	if err := json.NewDecoder(req.Body).Decode(&InitReq); err != nil {
+		log.Println(err)
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Cannot decode request")
+		return []byte{}
+	}
+
+	testString := []byte("TestStringMessage")
+
+	privkey := m.ConfigRecord{Name: "PrivateKey"}.Get(db)
+	pubkey := m.ConfigRecord{Name: "PublicKey"}.Get(db)
+
+	encryptedString, err := h.EncryptWithRSA([]byte(pubkey.Value), testString)
+	if err != nil {
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Cannot initialize protected storage ")
+		return nil
+	}
+	decryptedString, err := h.DecryptWithRSA([]byte(InitReq.Password), []byte(privkey.Value), encryptedString)
+
+	if string(decryptedString) != string(testString) {
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Incorrect password")
+		return nil
+	}
+	ReturnResult(w, true)
+
+	return []byte(InitReq.Password)
 }
 
 func Clear(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
@@ -83,16 +130,42 @@ func Clear(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	db.DropTableIfExists("seeds")
 	db.DropTableIfExists("wallets")
 	db.DropTableIfExists("orders")
+	db.DropTableIfExists("orders_dbs")
 	db.DropTableIfExists("addresses")
+	db.DropTableIfExists("accounts")
+	db.DropTableIfExists("config_records")
 	db.DropTableIfExists("transactions")
+	db.DropTableIfExists("transaction_addresses")
+	db.DropTableIfExists("transaction_assets")
+	db.DropTableIfExists("transaction_orders")
+	db.DropTableIfExists("transaction_wallets")
+	db.DropTableIfExists("wallet_owners")
 	db.AutoMigrate(&m.Asset{})
 	db.AutoMigrate(&m.User{})
-	db.AutoMigrate(&m.Seed{}).AddForeignKey("owner", "users(id)", "RESTRICT", "RESTRICT")
+	db.AutoMigrate(&m.Account{})
+	db.AutoMigrate(&m.Seed{})
 	db.AutoMigrate(&m.Wallet{})
 	db.AutoMigrate(&m.Address{})
 	db.AutoMigrate(&m.Order{})
 	db.AutoMigrate(&m.Transaction{})
+	db.AutoMigrate(&m.ConfigRecord{})
 	//db.Model(&m.Seed{}).AddForeignKey("owner", "users(id)", "RESTRICT", "RESTRICT")
+
+	InitReq := struct {
+		Password string `json:"password"`
+	}{}
+
+	if err := json.NewDecoder(req.Body).Decode(&InitReq); err != nil {
+		log.Println(err)
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Cannot decode request")
+		return
+	}
+
+	//passwordHash := sha256.Sum256([]byte(InitReq.Password))
+	priv, pub := h.GenerateRSAKey([]byte(InitReq.Password))
+
+	m.ConfigRecord{Name: "PrivateKey", Value: string(priv)}.Set(db)
+	m.ConfigRecord{Name: "PublicKey", Value: string(pub)}.Set(db)
 
 	ReturnResult(w, true)
 }

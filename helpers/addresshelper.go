@@ -1,4 +1,4 @@
-package trusthelpers
+package helpers
 
 // #cgo CFLAGS: -I../wallet-core/include
 // #cgo LDFLAGS: -L../wallet-core/build -L../wallet-core/build/trezor-crypto -lTrustWalletCore -lprotobuf -lTrezorCrypto -lc++ -lm
@@ -11,14 +11,15 @@ package trusthelpers
 import "C"
 import "encoding/hex"
 
-func GenerateAddress(asset string, seed string, change uint32, n uint32) (string, string) {
+func GenerateAddress(asset string, seed string, change uint32, n uint32) ([]byte, string) {
 	coins := map[string]uint32{
-		"BTC": C.TWCoinTypeBitcoin,
-		"ETH": C.TWCoinTypeEthereum,
+		"BTC":  C.TWCoinTypeBitcoin,
+		"BTCT": C.TWCoinTypeBitcoinTest,
+		"ETH":  C.TWCoinTypeEthereum,
 	}
 	seedBytes, err := hex.DecodeString(seed)
 	if err != nil {
-		return "", ""
+		return nil, ""
 	}
 
 	empty := TWStringCreateWithGoString("")
@@ -29,7 +30,7 @@ func GenerateAddress(asset string, seed string, change uint32, n uint32) (string
 	defer C.TWHDWalletDelete(wallet)
 	assetId, exists := coins[asset]
 	if !exists {
-		return "", ""
+		return nil, ""
 	}
 
 	key := C.TWHDWalletGetKeyBIP44(wallet, assetId, 0, (C.uint)(change), (C.uint)(n))
@@ -37,7 +38,9 @@ func GenerateAddress(asset string, seed string, change uint32, n uint32) (string
 	//defer C.TWDataDelete(keyData)
 	address := C.TWCoinTypeDeriveAddress(assetId, key)
 	//defer C.TWDataDelete(address)
-	stringKey := hex.EncodeToString(TWDataGoBytes(keyData))
+
+	//stringKey := hex.EncodeToString(TWDataGoBytes(keyData))
+	stringKey := TWDataGoBytes(keyData)
 	stringAddress := TWStringGoString(address)
 	return stringKey, stringAddress
 }

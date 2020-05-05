@@ -1,7 +1,10 @@
 package models
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/jinzhu/gorm"
+	"strings"
 )
 
 type Address struct {
@@ -20,3 +23,18 @@ type Address struct {
 }
 
 type Addresses []Address
+
+func (o Address) String() string {
+	var ret bytes.Buffer
+	fmt.Fprintf(&ret, "{ID:%d Address:%s Wallet:%d Seqno:%d}", o.ID, o.Address, o.WalletID, o.Seqno)
+	return ret.String()
+}
+
+func (a *Addresses) FindAddress(address string) *Address {
+	for _, adr := range []Address(*a) {
+		if strings.ToLower(adr.Address) == strings.ToLower(address) {
+			return &adr
+		}
+	}
+	return nil
+}

@@ -18,6 +18,8 @@ func (a *BlockAtlasAPI) getEndpoint(asset string) (ret string) {
 	switch asset {
 	case "ETH":
 		ret = "etherscan"
+	case "BTCT":
+		ret = "bitcointest"
 	default:
 		ret = asset
 	}
@@ -49,7 +51,7 @@ func (a *BlockAtlasAPI) Request(method string, endpoint string, data interface{}
 }
 
 func (a *BlockAtlasAPI) GetTXs(asset string, address string) ([]Tx, error) {
-	resp, err := a.Request("GET", "/v1/"+a.getEndpoint(asset)+"/txs/"+address, nil)
+	resp, err := a.Request("GET", "/v1/"+a.getEndpoint(asset)+"/address/"+address, nil)
 	var response TxResponse
 	if err != nil {
 		return response.Docs, err

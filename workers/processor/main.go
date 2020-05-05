@@ -4,6 +4,7 @@ import "C"
 import (
 	"../../api/blockatlas"
 	"../../api/vaulto"
+	h "../../helpers"
 	m "../../models"
 	"./builder"
 	"bytes"
@@ -11,7 +12,6 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"log"
-	"math/big"
 	"strings"
 	"time"
 )
@@ -20,6 +20,7 @@ var Assets m.Assets
 var Vaulto *vaulto.VaultoAPI
 var Blockatlas *blockatlas.BlockAtlasAPI
 
+/*
 func processOrders() {
 	orders, err := Vaulto.GetOrders()
 	log.Println("Orders :", err, orders)
@@ -31,7 +32,7 @@ func processOrders() {
 		if o.Status == m.OrderStatusNew {
 			log.Println("Processing order")
 
-			gasPrice, _ := Blockatlas.GasPrice(Assets.Get(Assets.GetBasicAsset(o.AssetId).ID).Symbol)
+			gasPrice, _ := Blockatlas.GasPrice(Assets.Load(Assets.GetBasicAsset(o.AssetId).ID).Symbol)
 
 			asset := Assets.Find(o.Symbol)
 			if asset == nil {
@@ -72,10 +73,12 @@ func processOrders() {
 					[]byte{})
 
 				log.Println("ETH Transaction built", tx)
-				txId, err := Vaulto.CreateTransaction(asset.ID, wallet.ID, []uint{o.ID}, []uint{address.ID}, "", tx, "")
+				txId, err := Vaulto.CreateTransaction([]uint{asset.ID}, []uint{wallet.ID}, []uint{o.ID}, []uint{address.ID}, "", tx, "")
 				log.Println("Transaction saved. ID : ", txId, err)
 				Vaulto.UpdateOrder(o.ID, m.OrderStatusProcessing)
 				Vaulto.UpdateAddress(address.ID, "", "", address.Seqno+1)
+			} else if asset.Symbol == "BTCT" {
+
 			} else if asset.Type == m.AssetTypeERC20 {
 				payload := builder.BuildERC20Transfer(o.AddressTo, *asset.ToBigInt(o.Amount))
 				tx := builder.BuildEthereum([]byte(address.PrivateKey),
@@ -86,7 +89,7 @@ func processOrders() {
 					*new(big.Int).SetUint64(address.Seqno),
 					payload)
 
-				txId, err := Vaulto.CreateTransaction(Assets.GetBasicAsset(asset.ID).ID, wallet.ID, []uint{o.ID}, []uint{address.ID}, "", tx, "")
+				txId, err := Vaulto.CreateTransaction([]uint{Assets.GetBasicAsset(asset.ID).ID}, []uint{wallet.ID}, []uint{o.ID}, []uint{address.ID}, "", tx, "")
 				log.Println("Transaction saved. ID : ", txId, err)
 
 				log.Println("ERC20 Transaction built", tx)
@@ -99,7 +102,7 @@ func processOrders() {
 
 		if o.Status == m.OrderStatusProcessing || o.Status == m.OrderStatusPartiallyProcessed {
 			log.Println("Order in processing state", o.ID)
-			transactions, err := Vaulto.GetTransactions()
+			transactions, err := Vaulto.GetOrderTransactions(o.ID)
 			if err != nil {
 				continue
 			}
@@ -123,6 +126,38 @@ func processOrders() {
 
 	}
 
+}*/
+
+func processOrders() {
+	orders, err := Vaulto.GetOrders()
+	log.Println("Orders :", err, orders)
+	for i, a := range Assets {
+		log.Println("Assets ", i, a.Symbol)
+	}
+
+	wallets, err := Vaulto.GetWallets()
+	if err != nil {
+		return
+	}
+
+	for _, w := range wallets {
+		orders, err := Vaulto.GetOrdersForWallet(w.ID)
+		if err != nil || len(orders) == 0 {
+			log.Println("No orders for Wallet", w.ID)
+			continue
+		}
+		addresses, err := Vaulto.GetAddressesForWallet(w.ID)
+		if err != nil || len(orders) == 0 {
+			log.Println("No addresses for Wallet", w.ID)
+			continue
+		}
+
+		transactions, err := Vaulto.GetTransactionsForWallet(w.ID)
+		if w.Asset.Symbol == "BTCT" {
+			builder.BuiltBitcoinTransactions(orders, addresses, transactions)
+		}
+	}
+
 }
 
 func processTransactions() {
@@ -131,7 +166,7 @@ func processTransactions() {
 		log.Println("Transaction ", i, t.ID)
 
 		if t.Status == m.TransactionStatusNew {
-			asset := Assets.Get(t.AssetId)
+			asset := Assets.Get(t.AssetId[0])
 			if len(t.Tx) == 0 {
 				log.Println("No transaction data")
 				continue
@@ -140,7 +175,7 @@ func processTransactions() {
 				Tx string `json:"tx"`
 			}{t.Tx}
 
-			txHash, err := Blockatlas.SendTransaction(asset.Symbol, tx)
+			txHash, err := Blockatlas.SendTransaction(Assets.GetBasicAsset(asset.ID).Symbol, tx)
 
 			if err != nil {
 				Vaulto.UpdateTransaction(t.ID, m.TransactionStatusFailed, "", "", err.Error())
@@ -148,10 +183,11 @@ func processTransactions() {
 				continue
 			}
 			if len(txHash) == 0 {
-				Vaulto.UpdateTransaction(t.ID, m.TransactionStatusPending, "", "", "")
+				Vaulto.UpdateTransaction(t.ID, m.TransactionStatusFailed, "", "", "")
 
+			} else {
+				Vaulto.UpdateTransaction(t.ID, m.TransactionStatusSent, "", txHash, "")
 			}
-			Vaulto.UpdateTransaction(t.ID, m.TransactionStatusSent, "", txHash, "")
 		}
 	}
 }
@@ -162,13 +198,19 @@ func scanTransactions() {
 		return
 	}
 
-	transactions, err := Vaulto.GetTransactions()
-	var txss = m.Transactions(transactions)
+	allAddrArray, err := Vaulto.GetAddressesForWallet(0)
+	var allAddresses = m.Addresses(allAddrArray)
+
+	//transactions, err := Vaulto.GetTransactions()
+	//var txss = m.Transactions(transactions)
 
 	if err != nil {
 		return
 	}
 	for _, w := range wallets {
+		if Assets.Get(w.AssetId).Type != m.AssetTypeBase {
+			continue
+		}
 		addresses, err := Vaulto.GetAddressesForWallet(w.ID)
 		if err != nil {
 			log.Println("Error fetching addresses for wallet ", w.ID)
@@ -180,8 +222,13 @@ func scanTransactions() {
 			}
 			newSeqno := uint64(0)
 			for _, t := range txs {
-				tx := txss.FindByHash(t.ID)
-				if tx != nil {
+				tx, err := Vaulto.GetTransactionByHash(t.ID)
+				if err != nil {
+					log.Println("Error fetching transaction : ", tx.ID)
+					continue
+				}
+
+				if tx != nil && tx.ID != 0 {
 					if tx.Status == m.TransactionStatusSent {
 						txStatus := m.TransactionStatusPending
 						if t.Status == "completed" {
@@ -192,13 +239,51 @@ func scanTransactions() {
 						Vaulto.UpdateTransaction(tx.ID, txStatus, "", "", buf.String())
 					}
 				} else {
-					//TODO: No transaction found
+					log.Println("New transaction : ", t)
+					affectedAddresses := *new([]uint)
+					affectedWallets := *new([]uint)
+					affectedAssets := *new([]uint)
+					if addr := allAddresses.FindAddress(t.From); addr != nil {
+						affectedAddresses = h.UintAppendNew(affectedAddresses, addr.ID)
+						affectedWallets = h.UintAppendNew(affectedWallets, addr.WalletID)
+						affectedAssets = h.UintAppendNew(affectedAssets, w.AssetId)
+
+					}
+					if addr := allAddresses.FindAddress(t.To); addr != nil {
+						affectedAddresses = h.UintAppendNew(affectedAddresses, addr.ID)
+						affectedWallets = h.UintAppendNew(affectedWallets, addr.WalletID)
+						affectedAssets = h.UintAppendNew(affectedAssets, w.AssetId)
+					}
+
+					for _, input := range t.Inputs {
+						if addr := allAddresses.FindAddress(input.Address); addr != nil {
+							affectedAddresses = h.UintAppendNew(affectedAddresses, addr.ID)
+							affectedWallets = h.UintAppendNew(affectedWallets, addr.WalletID)
+							affectedAssets = h.UintAppendNew(affectedAssets, w.AssetId)
+						}
+					}
+
+					for _, output := range t.Outputs {
+						if addr := allAddresses.FindAddress(output.Address); addr != nil {
+							affectedAddresses = h.UintAppendNew(affectedAddresses, addr.ID)
+							affectedWallets = h.UintAppendNew(affectedWallets, addr.WalletID)
+							affectedAssets = h.UintAppendNew(affectedAssets, w.AssetId)
+						}
+					}
+					buf := new(bytes.Buffer)
+					json.NewEncoder(buf).Encode(&t)
+
+					txId, err := Vaulto.CreateTransaction(affectedAssets, affectedWallets, []uint{}, affectedAddresses,
+						t.ID, "", buf.String())
+					log.Println("Error", err, "Tx ID :", txId, "TxHash :", t.ID, "Addresses : ", affectedAddresses, "Wallets : ", affectedWallets, "Assets :", affectedAssets)
+					Vaulto.UpdateTransaction(txId, m.TransactionStatusConfirmed, "", "", "")
+
 				}
-				if newSeqno <= t.Sequence && strings.ToLower(t.From) == strings.ToLower(a.Address) {
+				if w.Asset.Symbol == "ETH" && newSeqno <= t.Sequence && strings.ToLower(t.From) == strings.ToLower(a.Address) {
 					newSeqno = t.Sequence + 1
 				}
 			}
-			if a.Seqno < newSeqno {
+			if w.Asset.Symbol == "ETH" && a.Seqno < newSeqno {
 				Vaulto.UpdateAddress(a.ID, a.Address, "", newSeqno)
 			}
 
@@ -239,12 +324,13 @@ func main() {
 		for true {
 			processOrders()
 			time.Sleep(2 * time.Second)
+			break
 		}
 	}()
 
 	go func() {
 		for true {
-			processTransactions()
+			//processTransactions()
 			time.Sleep(2 * time.Second)
 		}
 	}()
@@ -252,7 +338,7 @@ func main() {
 	go func() {
 		for true {
 			time.Sleep(60 * time.Second)
-			scanTransactions()
+			//scanTransactions()
 		}
 	}()
 

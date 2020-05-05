@@ -15,12 +15,13 @@ package builder
 import "C"
 
 import (
-	h "../../../trusthelpers"
+	h "../../../helpers"
 	"log"
 	"math/big"
 	"unsafe"
 )
 import "encoding/hex"
+import "google.golang.org/protobuf/proto"
 import "../../../proto/Ethereum"
 
 func BuildEthereum(private_key []byte, to string, value big.Int, gasLimit big.Int, gasPrice big.Int, nonce big.Int, payload []byte) (tx string) {
@@ -40,13 +41,13 @@ func BuildEthereum(private_key []byte, to string, value big.Int, gasLimit big.In
 	input.ToAddress = to
 	input.Payload = payload
 
-	out, _ := input.XXX_Marshal(nil, true)
+	out, _ := proto.Marshal(input)
 
 	//input_c := h.TWDataCreateWithGoBytes(([]byte)(input.String()))
 	ethout := C.TWAnySignerSign(h.TWDataCreateWithGoBytes(out), C.TWCoinTypeEthereum)
 
 	output := new(TW_Ethereum_Proto.SigningOutput)
-	output.XXX_Unmarshal(h.TWDataGoBytes(unsafe.Pointer(ethout)))
+	proto.Unmarshal(h.TWDataGoBytes(unsafe.Pointer(ethout)), output)
 	log.Println("buildEtehreum tx :", hex.EncodeToString(output.Encoded))
 	return hex.EncodeToString(output.Encoded)
 }

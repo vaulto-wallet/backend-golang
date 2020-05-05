@@ -3,11 +3,11 @@ package handlers
 import (
 	m "../models"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func CreateTransaction(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
@@ -23,13 +23,21 @@ func CreateTransaction(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	err := json.NewDecoder(req.Body).Decode(&r)
 
 	orders := new([]*m.Order)
-	db.Find(orders, r.OrderIds)
+	db.Find(orders, "id IN (?)", r.OrderId)
 
 	addresses := new([]*m.Address)
-	db.Find(addresses, r.AddressIds)
+	db.Find(addresses, "id IN (?)", r.AddressId)
+
+	assets := new([]*m.Asset)
+	db.Find(assets, "id IN (?)", r.AssetId)
+
+	wallets := new([]*m.Wallet)
+	db.Find(wallets, "id IN (?)", r.WalletId)
 
 	r.Order = *orders
 	r.Address = *addresses
+	r.Asset = *assets
+	r.Wallet = *wallets
 
 	if err != nil {
 		ReturnError(w, Error(BadRequest))
@@ -61,6 +69,11 @@ func UpdateTransaction(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 
 	db.First(&dbTransaction, r.ID)
 
+	if dbTransaction.ID == 0 {
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Transaction not found")
+		return
+	}
+
 	if dbTransaction.Status != r.Status && r.Status != m.TransactionStatus(m.TransactionStatusUnknown) {
 		dbTransaction.Status = r.Status
 	}
@@ -77,7 +90,13 @@ func UpdateTransaction(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		dbTransaction.TxData = r.TxData
 	}
 
-	db.Save(&dbTransaction)
+	db.Model(&dbTransaction).Updates(struct {
+		Status m.TransactionStatus
+		Tx     string
+		TxData string
+		TxHash string
+	}{
+		dbTransaction.Status, dbTransaction.Tx, dbTransaction.TxData, dbTransaction.TxHash})
 	ReturnResult(w, true)
 }
 
@@ -99,17 +118,18 @@ func GetTransactions(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 
 			db.Model(&order).Related(&transactions, "Transaction")
 		}
+	} else if wallet, ok := vars["wallet"]; ok && order != "0" {
+		if walletId, err := strconv.ParseUint(wallet, 10, 64); err != nil {
+			ReturnError(w, Error(BadRequest))
+		} else {
+			var wallet m.Wallet
+			db.First(&wallet, walletId)
+			db.Model(&wallet).Related(&transactions, "Transaction")
+		}
 	} else {
 		db.Find(&transactions)
 	}
 
-	res, err := json.Marshal(transactions)
-	if err != nil {
-		ReturnError(w, Error(BadRequest))
-		return
-	}
-
-	fmt.Println((string)(res))
 	ReturnResult(w, transactions)
 }
 
@@ -117,14 +137,17 @@ func GetTransaction(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	username := req.Context().Value("user")
 	dbUser := m.User{}
 	db.First(&dbUser, "Username = ?", username)
-	var transaction m.Transaction
+	transaction := new(m.Transaction)
 
 	vars := mux.Vars(req)
 
-	transactionId, _ := strconv.ParseUint(vars["transaction"], 10, 64)
-
-	db.First(&transaction, transactionId)
-	if transactionId == 0 {
+	if txValue, ok := vars["id"]; ok && txValue != "0" {
+		transactionId, _ := strconv.ParseUint(txValue, 10, 64)
+		db.Set("gorm:auto_preload", true).First(transaction, transactionId)
+	} else if txHashValue, ok := vars["txhash"]; ok && len(txHashValue) > 0 {
+		txHash := strings.ToLower(txHashValue)
+		db.Set("gorm:auto_preload", true).First(transaction, "tx_hash = ?", txHash)
+	} else {
 		ReturnError(w, Error(BadRequest))
 	}
 

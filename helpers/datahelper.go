@@ -1,4 +1,4 @@
-package trusthelpers
+package helpers
 
 // #cgo CFLAGS: -I../wallet-core/include
 // #cgo LDFLAGS: -L../wallet-core/build -L../wallet-core/build/trezor-crypto -lTrustWalletCore -lprotobuf -lTrezorCrypto -lc++ -lm

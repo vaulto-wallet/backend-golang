@@ -104,8 +104,11 @@ type Tx struct {
 }
 
 type TxOutput struct {
-	Address string `json:"address"`
-	Value   Amount `json:"value"`
+	Address  string `json:"address"`
+	Value    Amount `json:"value"`
+	TxId     string `json:"txid"`
+	N        uint   `json:"n"`
+	Sequence uint   `json:"sequence"`
 }
 
 // Transfer describes the transfer of currency native to the platform

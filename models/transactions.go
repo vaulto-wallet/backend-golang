@@ -52,20 +52,20 @@ func (direction TransactionDirection) String() string {
 
 type Transaction struct {
 	gorm.Model
-	Name       string
-	AssetId    uint
-	WalletId   uint
-	OrderIds   []uint `gorm:"-"`
-	AddressIds []uint `gorm:"-"`
-	TxHash     string
-	Tx         string
-	TxData     string
-	Direction  TransactionDirection
-	Status     TransactionStatus
-	Asset      Asset      `json:"-"`
-	Wallet     Wallet     `json:"-"`
-	Order      []*Order   `json:"-" gorm:"many2many:transaction_orders;"`
-	Address    []*Address `json:"-" gorm:"many2many:transaction_addresses;"`
+	Name      string
+	AssetId   []uint `gorm:"-"`
+	WalletId  []uint `gorm:"-"`
+	OrderId   []uint `gorm:"-"`
+	AddressId []uint `gorm:"-"`
+	TxHash    string
+	Tx        string
+	TxData    string
+	Direction TransactionDirection
+	Status    TransactionStatus
+	Asset     []*Asset   `json:"-" gorm:"many2many:transaction_assets;"`
+	Wallet    []*Wallet  `json:"-" gorm:"many2many:transaction_wallets;"`
+	Order     []*Order   `json:"-" gorm:"many2many:transaction_orders;"`
+	Address   []*Address `json:"-" gorm:"many2many:transaction_addresses;"`
 }
 
 type Transactions []Transaction
@@ -81,7 +81,7 @@ func (t *Transactions) FindByHash(txHash string) *Transaction {
 
 func (t *Transactions) FindByOrder(orderId uint) (res []Transaction) {
 	for _, tx := range []Transaction(*t) {
-		for _, oid := range tx.OrderIds {
+		for _, oid := range tx.OrderId {
 			if oid == orderId {
 				res = append(res, tx)
 				continue

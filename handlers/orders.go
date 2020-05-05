@@ -11,14 +11,8 @@ import (
 )
 
 func CreateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
-	username := req.Context().Value("user")
-	dbUser := m.User{}
-	db.First(&dbUser, "Username = ?", username)
+	user := req.Context().Value("user").(*m.User)
 
-	if dbUser.ID == 0 {
-		ReturnError(w, Error(NoUser))
-		return
-	}
 	var r m.Order
 	err := json.NewDecoder(req.Body).Decode(&r)
 
@@ -27,22 +21,23 @@ func CreateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if r.AssetId == 0 {
-		if len(r.Symbol) == 0 {
-			ReturnError(w, Error(BadRequest))
-			return
-		}
-		var asset m.Asset
-		db.Where("symbol = ?", r.Symbol).First(&asset)
-		r.AssetId = asset.ID
+	dbWallet := new(m.Wallet)
+	if r.WalletId == 0 {
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Invalid wallet")
+	}
+
+	db.Find(dbWallet, r.WalletId)
+
+	if dbWallet.ID == 0 {
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Wallet not found")
 	}
 
 	newOrder := m.Order{
 		Amount:        r.Amount,
 		AddressTo:     r.AddressTo,
-		AssetId:       r.AssetId,
+		AssetId:       dbWallet.AssetId,
 		WalletId:      r.WalletId,
-		SubmittedById: dbUser.ID,
+		SubmittedById: user.ID,
 		Comment:       r.Comment,
 		Status:        m.OrderStatusNew,
 	}
@@ -52,17 +47,11 @@ func CreateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 }
 
 func UpdateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
-	username := req.Context().Value("user")
-	dbUser := m.User{}
+	//user := req.Context().Value("user")
 	dbOrder := m.Order{}
-	db.First(&dbUser, "Username = ?", username)
-
-	if dbUser.ID == 0 {
-		ReturnError(w, Error(NoUser))
-		return
-	}
 
 	var r m.Order
+
 	err := json.NewDecoder(req.Body).Decode(&r)
 
 	if err != nil {
@@ -72,8 +61,8 @@ func UpdateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 
 	db.First(&dbOrder, r.ID)
 
-	if dbOrder.Status != (m.OrderStatus)(r.Status) {
-		dbOrder.Status = (m.OrderStatus)(r.Status)
+	if dbOrder.Status != r.Status {
+		dbOrder.Status = r.Status
 	}
 
 	if dbOrder.Comment != r.Comment && len(r.Comment) > 0 {
@@ -85,19 +74,22 @@ func UpdateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 }
 
 func GetOrders(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
-	username := req.Context().Value("user")
-	dbUser := m.User{}
-	db.First(&dbUser, "Username = ?", username)
-	var orders m.Orders
+	user := req.Context().Value("user").(*m.User)
 
-	db.Table("orders").Select("orders.id, orders.address_to, orders.asset_id, orders.amount, orders.comment, orders.status, orders.submitted_by_id, orders.wallet_id, assets.symbol").Joins("LEFT JOIN assets ON assets.id = orders.asset_id").Find(&orders)
-	res, err := json.Marshal(orders)
-	if err != nil {
-		ReturnResult(w, orders)
-		return
+	orders := new(m.Orders)
+
+	vars := mux.Vars(req)
+
+	if walletId, ok := vars["wallet"]; ok && walletId != "0" {
+		wId, err := strconv.Atoi(walletId)
+		if err != nil {
+			ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Invalid wallet ID")
+		}
+		db.Preload("Asset").Find(orders, "wallet_id = ?", wId)
+	} else {
+		db.Preload("Asset").Find(orders)
 	}
-
-	fmt.Println((string)(res))
+	fmt.Println(orders)
 	ReturnResult(w, orders)
 }
 

@@ -396,13 +396,13 @@ func main() {
 	log.Println("Create seed : ", seed_result)
 
 	seeds := apiGetSeeds(token)
-	log.Println("Get seed : ", seeds)
+	log.Println("Load seed : ", seeds)
 
 	wallet_result := apiCreateWallet(token, "ETH wallet", "main", 1, 1)
 	log.Println("Create wallet : ", wallet_result)
 
 	wallets := apiGetWallets(token)
-	log.Println("Get wallets : ", wallets)
+	log.Println("Load wallets : ", wallets)
 
 	address_result := apiCreateAddress(token, 1, "New address")
 	log.Println("Create address : ", address_result)

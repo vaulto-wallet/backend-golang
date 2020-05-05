@@ -1,6 +1,10 @@
 package models
 
-import "github.com/jinzhu/gorm"
+import (
+	"bytes"
+	"fmt"
+	"github.com/jinzhu/gorm"
+)
 
 type OrderStatus int
 
@@ -25,19 +29,26 @@ func (a OrderStatus) String() string {
 
 type Order struct {
 	gorm.Model
-	AssetId       uint           `json:"asset_id,omitempty"`
-	Symbol        string         `json:"symbol"`
-	WalletId      uint           `json:"wallet_id,omitempty"`
-	AddressTo     string         `json:"address_to,omitempty"`
-	Amount        float64        `json:"amount,omitempty"`
-	Comment       string         `json:"comment,omitempty"`
-	Tx            string         `json:"tx,omitempty"`
-	TxHash        string         `json:"tx_hash,omitempty"`
+	AssetId   uint    `json:"asset_id,omitempty"`
+	Symbol    string  `json:"symbol"`
+	WalletId  uint    `json:"wallet_id,omitempty"`
+	AddressTo string  `json:"address_to,omitempty"`
+	Amount    float64 `json:"amount,omitempty"`
+	Comment   string  `json:"comment,omitempty"`
+	//	Tx            string         `json:"tx,omitempty"`
+	//	TxHash        string         `json:"tx_hash,omitempty"`
 	SubmittedById uint           `json:"-"`
 	Status        OrderStatus    `json:"status,omitempty"`
-	Wallet        Wallet         `json:"-"`
+	Wallet        Wallet         `json:"wallet,omitempty"`
 	SubmittedBy   User           `json:"-"`
+	Asset         Asset          `json:"asset,omitempty"`
 	Transaction   []*Transaction `json:"-" gorm:"many2many:transaction_orders;"`
+}
+
+func (o Order) String() string {
+	var ret bytes.Buffer
+	fmt.Fprintf(&ret, "{ID:%d Wallet:%d Amount:%f %s To:%s Status:%s}", o.ID, o.WalletId, o.Amount, o.Asset.Symbol, o.AddressTo, o.Status)
+	return ret.String()
 }
 
 type Orders []Order

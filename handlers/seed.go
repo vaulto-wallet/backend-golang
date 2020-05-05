@@ -11,30 +11,32 @@ package handlers
 import "C"
 
 import (
+	h "../helpers"
 	m "../models"
-	h "../trusthelpers"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/jinzhu/gorm"
+	"log"
 	"math/rand"
 	"net/http"
 )
 
 func CreateSeed(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
-	username := req.Context().Value("user")
-	dbUser := m.User{}
-	db.First(&dbUser, "Username = ?", username)
-
-	if dbUser.ID == 0 {
-		ReturnError(w, Error(NoUser))
+	masterPassword := req.Context().Value("masterPassword")
+	user := req.Context().Value("user").(*m.User)
+	log.Println(user)
+	if masterPassword == nil {
+		ReturnErrorWithStatusString(w, Error(NotInitialized), 400, "Not initialized")
 		return
 	}
+
 	var r interface{}
 	err := json.NewDecoder(req.Body).Decode(&r)
 
 	if err != nil {
 		ReturnError(w, Error(BadRequest))
+		return
 	}
 	rm := r.(map[string]interface{})
 
@@ -59,7 +61,15 @@ func CreateSeed(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		rand.Read(seed)
 	}
 
-	seedHex := hex.EncodeToString(seed)
+	pub := m.ConfigRecord{Name: "PublicKey"}.Get(db)
+	if pub.ID == 0 || len(pub.Value) == 0 {
+		ReturnErrorWithStatusString(w, Error(NotInitialized), 400, "Master public key is not set")
+		return
+	}
+
+	encryptedSeed, _ := h.EncryptWithRSA([]byte(pub.Value), seed)
+
+	seedHex := hex.EncodeToString(encryptedSeed)
 
 	seedName := "New seed"
 	seedParam, exists := rm["name"]
@@ -70,7 +80,7 @@ func CreateSeed(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	dbSeed := m.Seed{
 		Name:  seedName,
 		Seed:  seedHex,
-		Owner: dbUser,
+		Owner: user,
 	}
 	db.Create(&dbSeed)
 
@@ -78,13 +88,11 @@ func CreateSeed(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 }
 
 func GetSeeds(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
-	username := req.Context().Value("user")
-	dbUser := m.User{}
-	db.First(&dbUser, "Username = ?", username)
+	user := req.Context().Value("user").(*m.User)
 
 	var seeds m.Seeds
 
-	db.Where("owner_id = ? ", dbUser.ID).Find(&seeds)
+	db.Where("owner_id = ? ", user.ID).Find(&seeds)
 
 	res, err := json.Marshal(seeds)
 	if err != nil {
