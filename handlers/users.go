@@ -130,6 +130,7 @@ func Clear(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	db.DropTableIfExists("seeds")
 	db.DropTableIfExists("wallets")
 	db.DropTableIfExists("orders")
+	db.DropTableIfExists("order_destinations")
 	db.DropTableIfExists("orders_dbs")
 	db.DropTableIfExists("addresses")
 	db.DropTableIfExists("accounts")
@@ -140,6 +141,9 @@ func Clear(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	db.DropTableIfExists("transaction_orders")
 	db.DropTableIfExists("transaction_wallets")
 	db.DropTableIfExists("wallet_owners")
+	db.DropTableIfExists("wallet_auditors")
+	db.DropTableIfExists("firewall_rules")
+	db.DropTableIfExists("confirmations")
 	db.AutoMigrate(&m.Asset{})
 	db.AutoMigrate(&m.User{})
 	db.AutoMigrate(&m.Account{})
@@ -147,9 +151,11 @@ func Clear(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	db.AutoMigrate(&m.Wallet{})
 	db.AutoMigrate(&m.Address{})
 	db.AutoMigrate(&m.Order{})
+	db.AutoMigrate(&m.OrderDestination{})
 	db.AutoMigrate(&m.Transaction{})
 	db.AutoMigrate(&m.ConfigRecord{})
-	//db.Model(&m.Seed{}).AddForeignKey("owner", "users(id)", "RESTRICT", "RESTRICT")
+	db.AutoMigrate(&m.FirewallRule{})
+	db.AutoMigrate(&m.Confirmation{})
 
 	InitReq := struct {
 		Password string `json:"password"`
@@ -161,7 +167,6 @@ func Clear(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	//passwordHash := sha256.Sum256([]byte(InitReq.Password))
 	priv, pub := h.GenerateRSAKey([]byte(InitReq.Password))
 
 	m.ConfigRecord{Name: "PrivateKey", Value: string(priv)}.Set(db)

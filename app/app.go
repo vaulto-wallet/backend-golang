@@ -5,6 +5,7 @@ import (
 	mw "../middlewares"
 	m "../models"
 	"context"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -53,10 +54,27 @@ func (a *App) Delete(path string, f func(w http.ResponseWriter, r *http.Request)
 }
 
 func (a *App) Run(host string) {
+	//a.Router.Use(mw.AccessControlMiddleware)
+
 	a.Router.Use(mw.LoggingMiddleware)
 	a.Router.Use(mw.AuthMiddlewareGenerator(a.DB))
 	a.Router.Use(mw.TwoFAMiddlewareGenerator(a.DB))
-	log.Fatal(http.ListenAndServe(host, a.Router))
+
+	cors := handlers.CORS(
+		handlers.AllowedHeaders([]string{"Origin", "Content-Type"}),
+		handlers.AllowedOrigins([]string{"http://localhost:8001"}),
+		handlers.AllowedMethods([]string{"POST", "GET", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowCredentials(),
+	)(a.Router)
+
+	/*	c := cors.New(cors.Options{
+			AllowedOrigins: []string{"http://localhost:8001"},
+			AllowCredentials: true,
+		})
+		handler := c.Handler(a.Router)
+	*/
+
+	log.Fatal(http.ListenAndServe(host, cors))
 }
 
 func (a *App) setRouters() {
@@ -72,12 +90,14 @@ func (a *App) setRouters() {
 	a.Get("/api/wallets", a.GetWallets)
 	a.Get("/api/wallets/{asset}", a.GetWalletsForAsset)
 	a.Get("/api/wallet/orders/{wallet}", a.GetOrders)
+	a.Get("/api/wallet/rules/{wallet}", a.GetRules)
 	a.Get("/api/wallet/transactions/{wallet}", a.GetTransactions)
 	a.Post("/api/assets", a.CreateAsset)
 	a.Get("/api/assets", a.GetAssets)
 	a.Post("/api/orders", a.CreateOrder)
 	a.Get("/api/orders", a.GetOrders)
 	a.Get("/api/order/{order}", a.GetOrder)
+	a.Post("/api/order/{order}/confirm", a.ConfirmOrder)
 	a.Get("/api/order/{order}/txs", a.GetOrderTransactions)
 	a.Put("/api/orders", a.UpdateOrder)
 	a.Post("/api/address", a.CreateAddress)
@@ -88,7 +108,8 @@ func (a *App) setRouters() {
 	a.Put("/api/transactions", a.UpdateTransaction)
 	a.Get("/api/transaction/id/{id}", a.GetTransaction)
 	a.Get("/api/transaction/txhash/{txhash}", a.GetTransaction)
-
+	a.Post("/api/firewall", a.CreateRule)
+	a.Get("/api/firewall/{rule}", a.GetRule)
 }
 
 func (a *App) Login(w http.ResponseWriter, r *http.Request) {
@@ -170,6 +191,10 @@ func (a *App) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	h.UpdateOrder(a.DB, w, r)
 }
 
+func (a *App) ConfirmOrder(w http.ResponseWriter, r *http.Request) {
+	h.ConfirmOrder(a.DB, w, r)
+}
+
 // Addresses
 func (a *App) CreateAddress(w http.ResponseWriter, r *http.Request) {
 	ctx := context.WithValue(r.Context(), "masterPassword", a.MasterPassword)
@@ -200,4 +225,16 @@ func (a *App) GetTransaction(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
 	h.UpdateTransaction(a.DB, w, r)
+}
+
+func (a *App) GetRules(w http.ResponseWriter, r *http.Request) {
+	h.GetRules(a.DB, w, r)
+}
+
+func (a *App) GetRule(w http.ResponseWriter, r *http.Request) {
+	h.GetRule(a.DB, w, r)
+}
+
+func (a *App) CreateRule(w http.ResponseWriter, r *http.Request) {
+	h.CreateRule(a.DB, w, r)
 }

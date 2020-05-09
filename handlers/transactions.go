@@ -70,7 +70,7 @@ func UpdateTransaction(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	db.First(&dbTransaction, r.ID)
 
 	if dbTransaction.ID == 0 {
-		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Transaction not found")
+		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Transactions not found")
 		return
 	}
 
@@ -116,7 +116,7 @@ func GetTransactions(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 			var order m.Order
 			db.First(&order, orderId)
 
-			db.Model(&order).Related(&transactions, "Transaction")
+			db.Model(&order).Related(&transactions, "Transactions")
 		}
 	} else if wallet, ok := vars["wallet"]; ok && order != "0" {
 		if walletId, err := strconv.ParseUint(wallet, 10, 64); err != nil {
@@ -124,7 +124,7 @@ func GetTransactions(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		} else {
 			var wallet m.Wallet
 			db.First(&wallet, walletId)
-			db.Model(&wallet).Related(&transactions, "Transaction")
+			db.Model(&wallet).Related(&transactions, "Transactions")
 		}
 	} else {
 		db.Find(&transactions)

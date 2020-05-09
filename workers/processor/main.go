@@ -72,9 +72,9 @@ func processOrders() {
 					*new(big.Int).SetUint64(address.Seqno),
 					[]byte{})
 
-				log.Println("ETH Transaction built", tx)
+				log.Println("ETH Transactions built", tx)
 				txId, err := Vaulto.CreateTransaction([]uint{asset.ID}, []uint{wallet.ID}, []uint{o.ID}, []uint{address.ID}, "", tx, "")
-				log.Println("Transaction saved. ID : ", txId, err)
+				log.Println("Transactions saved. ID : ", txId, err)
 				Vaulto.UpdateOrder(o.ID, m.OrderStatusProcessing)
 				Vaulto.UpdateAddress(address.ID, "", "", address.Seqno+1)
 			} else if asset.Symbol == "BTCT" {
@@ -90,9 +90,9 @@ func processOrders() {
 					payload)
 
 				txId, err := Vaulto.CreateTransaction([]uint{Assets.GetBasicAsset(asset.ID).ID}, []uint{wallet.ID}, []uint{o.ID}, []uint{address.ID}, "", tx, "")
-				log.Println("Transaction saved. ID : ", txId, err)
+				log.Println("Transactions saved. ID : ", txId, err)
 
-				log.Println("ERC20 Transaction built", tx)
+				log.Println("ERC20 Transactions built", tx)
 				Vaulto.UpdateOrder(o.ID, m.OrderStatusProcessing)
 				Vaulto.UpdateAddress(address.ID, "", "", address.Seqno+1)
 			} else {
@@ -163,7 +163,7 @@ func processOrders() {
 func processTransactions() {
 	transactions, _ := Vaulto.GetTransactions()
 	for i, t := range transactions {
-		log.Println("Transaction ", i, t.ID)
+		log.Println("Transactions ", i, t.ID)
 
 		if t.Status == m.TransactionStatusNew {
 			asset := Assets.Get(t.AssetId[0])

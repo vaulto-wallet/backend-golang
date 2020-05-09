@@ -12,6 +12,15 @@ func main() {
 	vaulto := a.VaultoAPI{}
 	vaulto.Init("http://localhost:8000/api")
 
+	vaulto_user_2 := a.VaultoAPI{}
+	vaulto_user_2.Init("http://localhost:8000/api")
+
+	vaulto_auditor_1 := a.VaultoAPI{}
+	vaulto_auditor_1.Init("http://localhost:8000/api")
+
+	vaulto_auditor_2 := a.VaultoAPI{}
+	vaulto_auditor_2.Init("http://localhost:8000/api")
+
 	vaulto_fetcher := a.VaultoAPI{}
 	vaulto_fetcher.Init("http://localhost:8000/api")
 
@@ -29,17 +38,35 @@ func main() {
 	startResult, err := vaulto.Start("masterPassword")
 	log.Println("Start :", err, startResult)
 
-	user_id, err := vaulto.Register("user1", "pwd1")
-	log.Println("Register user : ", err, user_id)
+	user_id, err := vaulto.Register("user1", "userpwd1")
+	log.Println("Register user 1: ", err, user_id)
+
+	user_2_id, err := vaulto_user_2.Register("user2", "userpwd2")
+	log.Println("Register user 2: ", err, user_2_id)
 
 	fetcher_user_id, err := vaulto.Register("fetcher", "fetcher")
 	log.Println("Register fetcher : ", err, fetcher_user_id)
 
 	worker_user_id, err := vaulto.Register("worker", "worker")
-	log.Println("Register sender : ", err, worker_user_id)
+	log.Println("Register worker : ", err, worker_user_id)
 
-	result, err = vaulto.Login("user1", "pwd1")
+	auditor_1_user_id, err := vaulto.Register("auditor1", "auditorpwd1")
+	log.Println("Register auditor 1 : ", err, auditor_1_user_id)
+
+	auditor_2_user_id, err := vaulto.Register("auditor2", "auditorpwd1")
+	log.Println("Register auditor 1 : ", err, auditor_2_user_id)
+
+	result, err = vaulto.Login("user1", "userpwd1")
 	log.Println("Login Owner : ", err, result)
+
+	result, err = vaulto_user_2.Login("user2", "userpwd2")
+	log.Println("Login User 2 : ", err, result)
+
+	result, err = vaulto_auditor_1.Login("auditor1", "auditorpwd1")
+	log.Println("Login Auditor 1 : ", err, result)
+
+	result, err = vaulto_auditor_2.Login("auditor2", "auditorpwd2")
+	log.Println("Login Auditor 1 : ", err, result)
 
 	result, err = vaulto_fetcher.Login("fetcher", "fetcher")
 	log.Println("Login Fetcher : ", err, result)
@@ -80,8 +107,8 @@ func main() {
 	wallet_btct_id, err := vaulto.CreateWallet("BTCT wallet", seed_id, asset_btct_id)
 	log.Println("Create wallet : ", err, wallet_btct_id)
 
-	wallet_btct_shared, err := vaulto.ShareWallet(wallet_btct_id, []uint{user_id, fetcher_user_id})
-	log.Println("Create wallet : ", err, wallet_btct_shared)
+	wallet_btct_shared, err := vaulto.ShareWallet(wallet_btct_id, []uint{user_2_id}, []uint{auditor_1_user_id, auditor_2_user_id})
+	log.Println("Share wallet BTCT : ", err, wallet_btct_shared)
 
 	wallets, err := vaulto.GetWallets()
 	log.Println("Wallets : ", wallets)
@@ -135,14 +162,20 @@ func main() {
 	wallets_btct, err = vaulto_fetcher.GetWalletsForAsset("BTCT")
 	log.Println("Fetcher BTCT Wallets:", err, wallets)
 
-	order_btct_id, err := vaulto_fetcher.CreateOrder(wallets_btct[0].ID, addresses_btct[0].Address, 0.00001, "BTCT order")
+	order_btct_id, err := vaulto.CreateOrder(wallets_btct[0].ID, addresses_btct[0].Address, 0.00001, "BTCT order")
 	log.Println("Fetcher OrderData :", err, order_btct_id)
+
+	order_btct_confirm, err := vaulto.ConfirmOrder(order_btct_id)
+	log.Println("User 1 confirms BTCT Order :", err, order_btct_confirm)
 
 	orders, err := vaulto_fetcher.GetOrders()
 	log.Println("Fetcher Orders :", err, orders)
 
-	orders_btct, err := vaulto_fetcher.GetOrdersForWallet(wallets_btct[0].ID)
-	log.Println("Fetcher Orders for BTCT Wallets :", err, orders_btct)
+	orders_fetcher_btct, err := vaulto_fetcher.GetOrdersForWallet(wallets_btct[0].ID)
+	log.Println("Fetcher Orders for BTCT Wallets :", err, orders_fetcher_btct)
+
+	orders_user_2_btct, err := vaulto_user_2.GetOrdersForWallet(wallets_btct[0].ID)
+	log.Println("User 2 Orders for BTCT Wallets :", err, orders_user_2_btct)
 
 	txs, err := blockatlas.GetTXs("ETH", "0x278F5F53156Be78bFE665D5354d40c539ca02ef3")
 	log.Println("BlockAtlas TXs :", err, txs)

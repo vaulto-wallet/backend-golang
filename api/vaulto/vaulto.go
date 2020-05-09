@@ -199,11 +199,13 @@ func (a *VaultoAPI) CreateWallet(name string, seedId uint, assetId uint) (uint, 
 	return uint(response.Result.(float64)), nil
 }
 
-func (a *VaultoAPI) ShareWallet(walletId uint, owners []uint) (bool, error) {
+func (a *VaultoAPI) ShareWallet(walletId uint, owners []uint, auditors []uint) (bool, error) {
 	resp, err := a.Request("PUT", "/wallets/share/"+strconv.Itoa(int(walletId)), struct {
-		Owners []uint `json:"owners"`
+		Coowners []uint `json:"coowners"`
+		Auditors []uint `json:"auditors"`
 	}{
-		Owners: owners,
+		Coowners: owners,
+		Auditors: auditors,
 	})
 	if err != nil {
 		return false, err
@@ -317,6 +319,25 @@ func (a *VaultoAPI) GetAddressesForWallet(wallet uint) ([]m.Address, error) {
 	return response.Result, nil
 }
 
+func (a *VaultoAPI) CreateOrder(walletId uint, addressTo string, amount float64, comment string) (uint, error) {
+	resp, err := a.Request("POST", "/orders", m.Order{
+		WalletId:     walletId,
+		Destinations: []*m.OrderDestination{{AddressTo: addressTo, Amount: amount}},
+		Comment:      comment,
+	})
+	if err != nil {
+		return 0, err
+	}
+	var response ResponseInterface
+	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
+
+	if len(response.Error) > 0 {
+		return 0, errors.New(response.ErrorText)
+	}
+	return uint(response.Result.(float64)), nil
+
+}
+
 func (a *VaultoAPI) UpdateOrder(orderId uint, status m.OrderStatus) (bool, error) {
 	resp, err := a.Request("PUT", "/orders", m.Order{
 		Model:  gorm.Model{ID: orderId},
@@ -334,24 +355,18 @@ func (a *VaultoAPI) UpdateOrder(orderId uint, status m.OrderStatus) (bool, error
 	return response.Result.(bool), nil
 }
 
-func (a *VaultoAPI) CreateOrder(walletId uint, addressTo string, amount float64, comment string) (uint, error) {
-	resp, err := a.Request("POST", "/orders", m.Order{
-		WalletId:  walletId,
-		AddressTo: addressTo,
-		Amount:    amount,
-		Comment:   comment,
-	})
+func (a *VaultoAPI) ConfirmOrder(orderId uint) (bool, error) {
+	resp, err := a.Request("POST", "/order/"+strconv.Itoa(int(orderId))+"/confirm", nil)
 	if err != nil {
-		return 0, err
+		return false, err
 	}
 	var response ResponseInterface
 	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
 
 	if len(response.Error) > 0 {
-		return 0, errors.New(response.ErrorText)
+		return false, errors.New(response.ErrorText)
 	}
-	return uint(response.Result.(float64)), nil
-
+	return response.Result.(bool), nil
 }
 
 func (a *VaultoAPI) GetOrders() (m.Orders, error) {

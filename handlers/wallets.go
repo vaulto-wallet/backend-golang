@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	h "../helpers"
 	m "../models"
 	"encoding/json"
 	"fmt"
@@ -56,10 +55,26 @@ func CreateWallet(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		AssetId:     r.AssetId,
 		N:           0,
 		ChangeN:     0,
-		Owners:      m.Users{user},
+		Coowners:    m.Users{},
+		Auditors:    m.Users{},
 	}
 
 	db.Create(&newWallet)
+
+	participantsList, _ := (&m.ParticipantsList{user.ID}).Marshal()
+
+	firewallRule := m.FirewallRule{
+		WalletId:              newWallet.ID,
+		Wallet:                newWallet,
+		ParticipantsType:      m.FirewallParticipantsTypeUsers,
+		Participants:          participantsList,
+		ConfirmationsRequired: 1,
+		AddressType:           m.FirewallAddressTypeExternal,
+		Amount:                0,
+		Period:                0,
+	}
+	db.Create(&firewallRule)
+
 	ReturnResult(w, newWallet.ID)
 }
 
@@ -68,7 +83,7 @@ func GetWallets(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 
 	var wallets []m.Wallet
 
-	db.Model(user).Preload("Owners").Related(&wallets, "Wallets")
+	db.Model(user).Preload("Coowners").Preload("Auditors").Related(&wallets, "Wallets")
 
 	ReturnResult(w, wallets)
 }
@@ -128,7 +143,8 @@ func ShareWallet(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	}
 
 	var r struct {
-		Owners []uint `json:"owners"`
+		Coowners *[]uint `json:"coowners,omitempty"`
+		Auditors *[]uint `json:"auditors,omitempty"`
 	}
 
 	err := json.NewDecoder(req.Body).Decode(&r)
@@ -137,16 +153,21 @@ func ShareWallet(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if !h.UintInArray(r.Owners, user.ID) {
-		ReturnErrorWithStatusString(w, Error(BadRequest), http.StatusBadRequest, "Owner is not is list")
-		return
+	coowners := new([]m.User)
+	db.Find(&coowners, "id in (?)", *r.Coowners)
+
+	auditors := new([]m.User)
+	db.Find(&auditors, "id in (?)", *r.Auditors)
+
+	dbWallet.Coowners = []*m.User{}
+	dbWallet.Auditors = []*m.User{}
+
+	for _, o := range *coowners {
+		dbWallet.Coowners = append(dbWallet.Coowners, &o)
 	}
 
-	owners := new([]m.User)
-	db.Find(&owners, "id in (?)", r.Owners)
-	dbWallet.Owners = []*m.User{}
-	for _, o := range *owners {
-		dbWallet.Owners = append(dbWallet.Owners, &o)
+	for _, o := range *auditors {
+		dbWallet.Auditors = append(dbWallet.Auditors, &o)
 	}
 
 	db.Save(dbWallet)

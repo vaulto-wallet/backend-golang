@@ -77,7 +77,7 @@ type Tx struct {
 	From string `json:"from"`
 	// Address of the transaction recipient
 	To string `json:"to"`
-	// Transaction fee (native currency)
+	// Transactions fee (native currency)
 	Fee Amount `json:"fee"`
 	// Unix timestamp of the block the transaction was included in
 	Date int64 `json:"date"`
@@ -88,7 +88,7 @@ type Tx struct {
 	// Empty if the transaction was successful,
 	// else error explaining why the transaction failed (optional)
 	Error string `json:"error,omitempty"`
-	// Transaction nonce or sequence
+	// Transactions nonce or sequence
 	Sequence uint64 `json:"sequence,omitempty"`
 	// Type of metadata
 	Type TransactionType `json:"type"`
@@ -96,7 +96,7 @@ type Tx struct {
 	Inputs []TxOutput `json:"inputs,omitempty"`
 	// Output addresses
 	Outputs []TxOutput `json:"outputs,omitempty"`
-	// Transaction Direction
+	// Transactions Direction
 	Direction Direction `json:"direction,omitempty"`
 	// Meta data object
 	Memo string      `json:"memo"`

@@ -21,20 +21,21 @@ func CreateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	dbWallet := new(m.Wallet)
 	if r.WalletId == 0 {
 		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Invalid wallet")
+		return
 	}
 
+	dbWallet := new(m.Wallet)
 	db.Find(dbWallet, r.WalletId)
 
 	if dbWallet.ID == 0 {
 		ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Wallet not found")
+		return
 	}
 
 	newOrder := m.Order{
-		Amount:        r.Amount,
-		AddressTo:     r.AddressTo,
+		Destinations:  r.Destinations,
 		AssetId:       dbWallet.AssetId,
 		WalletId:      r.WalletId,
 		SubmittedById: user.ID,
@@ -82,12 +83,25 @@ func GetOrders(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 
 	if walletId, ok := vars["wallet"]; ok && walletId != "0" {
 		wId, err := strconv.Atoi(walletId)
+
 		if err != nil {
 			ReturnErrorWithStatusString(w, Error(BadRequest), 400, "Invalid wallet ID")
+			return
 		}
-		db.Preload("Asset").Find(orders, "wallet_id = ?", wId)
+
+		var wallet m.Wallet
+		db.Preload("Auditors").Preload("Coowners").Preload("Seed").Find(&wallet, walletId)
+
+		if !wallet.HasReadPermission(user) {
+			ReturnErrorWithStatusString(w, Error(NotAuthorized), http.StatusForbidden, "No permission")
+			return
+		}
+
+		db.Preload("Asset").Preload("Destinations").Find(orders, "wallet_id in (?)", []int{wId})
 	} else {
-		db.Preload("Asset").Find(orders)
+		var wallets m.Wallets
+		db.Model(user).Preload("Coowners").Related(&wallets, "Wallets")
+		db.Preload("Asset").Preload("Destinations").Find(orders, "wallet_id in (?)", wallets.GetIds())
 	}
 	fmt.Println(orders)
 	ReturnResult(w, orders)
@@ -109,4 +123,63 @@ func GetOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	}
 
 	ReturnResult(w, order)
+}
+
+func ConfirmOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
+	user := req.Context().Value("user").(*m.User)
+	vars := mux.Vars(req)
+
+	var dbOrder m.Order
+
+	if orderId, ok := vars["order"]; ok && orderId != "0" {
+		oId, err := strconv.Atoi(orderId)
+
+		if err != nil {
+			ReturnErrorWithStatusString(w, Error(BadRequest), http.StatusBadRequest, "Invalid order ID")
+			return
+		}
+		db.Preload("Confirmations").First(&dbOrder, oId)
+	}
+	if dbOrder.ID == 0 {
+		ReturnErrorWithStatusString(w, Error(BadRequest), http.StatusBadRequest, "Order not found")
+		return
+	}
+
+	var dbWallet m.Wallet
+	db.Preload("Seed").Preload("FirewallRules").Preload("Coowners").Preload("Auditors").First(&dbWallet, dbOrder.WalletId)
+
+	if dbWallet.ID == 0 {
+		ReturnErrorWithStatusString(w, Error(BadRequest), http.StatusBadRequest, "Wallet not found")
+		return
+	}
+
+	if !dbWallet.HasWritePermission(user) {
+		ReturnErrorWithStatusString(w, Error(NotAuthorized), http.StatusForbidden, "No permission")
+		return
+	}
+
+	confirmation := m.Confirmation{
+		OrderId: dbOrder.ID,
+		UserId:  user.ID,
+	}
+
+	rule, confirmable, err := dbOrder.FindRule(db, confirmation)
+	if err != nil {
+		ReturnErrorWithStatusString(w, Error(BadRequest), http.StatusBadRequest, err.Error())
+		return
+	}
+	if !confirmable {
+		ReturnErrorWithStatusString(w, Error(NotAuthorized), http.StatusForbidden, "No rules found")
+		return
+	}
+	db.Save(&confirmation)
+
+	if rule != nil && rule.ID != 0 {
+		db.Model(dbOrder).Update(struct {
+			RuleId uint
+			Status m.OrderStatus
+		}{rule.ID, m.OrderStatusConfirmed})
+	}
+
+	ReturnResult(w, true)
 }
