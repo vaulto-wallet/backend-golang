@@ -3,7 +3,6 @@ package models
 import (
 	h "../helpers"
 	"encoding/json"
-	"github.com/jinzhu/gorm"
 )
 
 type FirewallAddressType uint
@@ -61,7 +60,7 @@ func (o *ParticipantsList) Marshal() (string, error) {
 }
 
 type FirewallRule struct {
-	gorm.Model
+	Model
 	WalletId              uint                     `json:"wallet"`
 	Wallet                Wallet                   `json:"-"`
 	ParticipantsType      FirewallParticipantsType `json:"participant_type"`

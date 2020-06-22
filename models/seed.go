@@ -3,7 +3,7 @@ package models
 import "github.com/jinzhu/gorm"
 
 type Seed struct {
-	gorm.Model
+	Model
 	Name    string
 	Seed    string
 	OwnerId uint
@@ -15,7 +15,7 @@ type Seed struct {
 type Seeds []Seed
 
 func (s *Seed) Load(db *gorm.DB, seed_id uint) (err interface{}) {
-	db.Set("gorm:auto_preload", true).Where("ID = ?", seed_id).First(&s)
+	db.Set("gorm:auto_preload", true).Where("id = ?", seed_id).First(&s)
 	if s.ID == 0 {
 		return "Seed not found"
 	}

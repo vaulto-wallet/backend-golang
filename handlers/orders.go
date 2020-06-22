@@ -100,8 +100,9 @@ func GetOrders(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		db.Preload("Asset").Preload("Destinations").Find(orders, "wallet_id in (?)", []int{wId})
 	} else {
 		var wallets m.Wallets
-		db.Model(user).Preload("Coowners").Related(&wallets, "Wallets")
-		db.Preload("Asset").Preload("Destinations").Find(orders, "wallet_id in (?)", wallets.GetIds())
+		//db.Model(user).Preload("Coowners").Related(&wallets, "Wallets")
+		db.Find(&wallets)
+		db.Preload("Asset").Preload("Destinations").Preload("Confirmations").Find(orders, "wallet_id in (?)", wallets.GetIds())
 	}
 	fmt.Println(orders)
 	ReturnResult(w, orders)

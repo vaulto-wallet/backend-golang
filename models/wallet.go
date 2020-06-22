@@ -3,7 +3,6 @@ package models
 import (
 	"bytes"
 	"fmt"
-	"github.com/jinzhu/gorm"
 )
 
 type PrivateKeyType int
@@ -39,7 +38,7 @@ func (a WalletUserGroup) String() string {
 }
 
 type Wallet struct {
-	gorm.Model
+	Model
 	Name          string          `json:"name"`
 	NetworkType   string          `json:"network_type"`
 	SeedId        uint            `json:"seed_id"`
@@ -49,10 +48,11 @@ type Wallet struct {
 	N             uint32          `json:"n"`
 	ChangeN       uint32          `json:"change_n"`
 	Seqno         uint32          `json:"seqno"`
+	Balance       float64         `json:"balance"`
 	Transaction   []*Transaction  `json:"-" gorm:"many2many:transaction_wallets"`
-	Coowners      []*User         `json:"-" gorm:"many2many:wallet_owners"`
-	Auditors      []*User         `json:"-" gorm:"many2many:wallet_auditors"`
-	FirewallRules []*FirewallRule `json:"-"`
+	Coowners      []*User         `json:"coowners" gorm:"many2many:wallet_owners"`
+	Auditors      []*User         `json:"auditors" gorm:"many2many:wallet_auditors"`
+	FirewallRules []*FirewallRule `json:"firewall_rules"`
 }
 
 func (o Wallet) String() string {

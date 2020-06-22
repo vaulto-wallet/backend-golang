@@ -25,14 +25,14 @@ func (a AssetType) String() string {
 }
 
 type Asset struct {
-	gorm.Model
-	Name      string
-	CoinIndex int
-	Symbol    string `gorm:"unique_index"`
-	Address   string
-	Type      AssetType
-	Decimals  int
-	Rounding  int
+	Model
+	Name      string    `json:"name,omitempty"`
+	CoinIndex int       `json:"coinindex,omitempty"`
+	Symbol    string    `json:"symbol,omitempty" gorm:"unique_index"`
+	Address   string    `json:"address,omitempty"`
+	Type      AssetType `json:"type,omitempty"`
+	Decimals  int       `json:"decimals,omitempty"`
+	Rounding  int       `json:"rounding,omitempty"`
 }
 
 type Assets []Asset

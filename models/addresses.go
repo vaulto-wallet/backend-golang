@@ -3,21 +3,20 @@ package models
 import (
 	"bytes"
 	"fmt"
-	"github.com/jinzhu/gorm"
 	"strings"
 )
 
 type Address struct {
-	gorm.Model `json:",omitempty"`
+	Model
 	Name       string  `json:"name,omitempty"`
 	Address    string  `json:"address,omitempty"`
 	PrivateKey string  `json:"private_key,omitempty"`
 	WalletID   uint    `json:"wallet_id,omitempty"`
-	N          uint32  `json:"n,omitempty"`
-	Change     uint32  `json:"change,omitempty"`
+	N          uint32  `json:"n"`
+	Change     uint32  `json:"change"`
 	Comment    string  `json:"comment,omitempty"`
 	BalanceInt string  `json:"balance_int,omitempty"`
-	Balance    float64 `json:"balance,omitempty"`
+	Balance    float64 `json:"balance"`
 	Wallet     Wallet  `json:"-"`
 	Seqno      uint64  `json:"seqno,omitempty"`
 }

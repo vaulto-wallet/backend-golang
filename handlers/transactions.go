@@ -11,14 +11,6 @@ import (
 )
 
 func CreateTransaction(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
-	username := req.Context().Value("user")
-	dbUser := m.User{}
-	db.First(&dbUser, "Username = ?", username)
-
-	if dbUser.ID == 0 {
-		ReturnError(w, Error(NoUser))
-		return
-	}
 	var r m.Transaction
 	err := json.NewDecoder(req.Body).Decode(&r)
 
@@ -49,15 +41,7 @@ func CreateTransaction(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 }
 
 func UpdateTransaction(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
-	username := req.Context().Value("user")
-	dbUser := new(m.User)
 	dbTransaction := new(m.Transaction)
-	db.First(&dbUser, "Username = ?", username)
-
-	if dbUser.ID == 0 {
-		ReturnError(w, Error(NoUser))
-		return
-	}
 
 	var r m.Transaction
 	err := json.NewDecoder(req.Body).Decode(&r)
@@ -101,10 +85,6 @@ func UpdateTransaction(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 }
 
 func GetTransactions(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
-	username := req.Context().Value("user")
-	dbUser := m.User{}
-	db.First(&dbUser, "Username = ?", username)
-
 	vars := mux.Vars(req)
 
 	var transactions []m.Transaction
@@ -112,10 +92,10 @@ func GetTransactions(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	if order, ok := vars["order"]; ok && order != "0" {
 		if orderId, err := strconv.ParseUint(order, 10, 64); err != nil {
 			ReturnError(w, Error(BadRequest))
+			return
 		} else {
 			var order m.Order
 			db.First(&order, orderId)
-
 			db.Model(&order).Related(&transactions, "Transactions")
 		}
 	} else if wallet, ok := vars["wallet"]; ok && order != "0" {
@@ -134,9 +114,6 @@ func GetTransactions(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 }
 
 func GetTransaction(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
-	username := req.Context().Value("user")
-	dbUser := m.User{}
-	db.First(&dbUser, "Username = ?", username)
 	transaction := new(m.Transaction)
 
 	vars := mux.Vars(req)

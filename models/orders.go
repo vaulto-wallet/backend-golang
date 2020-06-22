@@ -48,7 +48,7 @@ func (o *OrderDestination) String() string {
 type OrderDestinations []OrderDestination
 
 type Order struct {
-	gorm.Model
+	Model
 	AssetId       uint                `json:"asset_id,omitempty"`
 	Symbol        string              `json:"symbol"`
 	WalletId      uint                `json:"wallet_id,omitempty"`
@@ -60,7 +60,7 @@ type Order struct {
 	SubmittedBy   User                `json:"-"`
 	Asset         Asset               `json:"asset,omitempty"`
 	Transactions  []*Transaction      `json:"-" gorm:"many2many:transaction_orders;"`
-	Confirmations []*Confirmation     `json:"-"`
+	Confirmations []*Confirmation     `json:"confirmations"`
 	RuleId        uint                `json:"rule_id,omitempty"`
 	Rule          FirewallRule        `json:"-"`
 }

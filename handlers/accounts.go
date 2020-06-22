@@ -8,21 +8,26 @@ import (
 	"net/http"
 )
 
-func CreateAccount(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
-	var user m.User
-	var dbUser m.User
-	if err := json.NewDecoder(req.Body).Decode(&user); err != nil {
+func SetAccount(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
+	user := req.Context().Value("user").(*m.User)
+
+	var reqAccount m.Account
+	if err := json.NewDecoder(req.Body).Decode(&reqAccount); err != nil {
 		log.Println(err)
 		ReturnError(w, Error(BadRequest))
 		return
 	}
-
-	db.First(&dbUser, "username = ?", user.Username)
-	log.Println(dbUser)
-	if dbUser.ID != 0 {
-		ReturnError(w, Error(AlreadyRegistered))
-		return
+	if len(reqAccount.Email) > 0 {
+		db.Model(&user.Account).Update("email", reqAccount.Email)
+	}
+	if len(reqAccount.Name) > 0 {
+		db.Model(&user.Account).Update("name", reqAccount.Name)
 	}
 
 	ReturnResult(w, true)
+}
+
+func GetAccount(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
+	user := req.Context().Value("user").(*m.User)
+	ReturnResult(w, user)
 }

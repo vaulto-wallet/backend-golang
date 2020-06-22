@@ -61,7 +61,7 @@ func (a *App) Run(host string) {
 	a.Router.Use(mw.TwoFAMiddlewareGenerator(a.DB))
 
 	cors := handlers.CORS(
-		handlers.AllowedHeaders([]string{"Origin", "Content-Type"}),
+		handlers.AllowedHeaders([]string{"Origin", "Content-Type", "Authorization"}),
 		handlers.AllowedOrigins([]string{"http://localhost:8001"}),
 		handlers.AllowedMethods([]string{"POST", "GET", "PUT", "DELETE", "OPTIONS"}),
 		handlers.AllowCredentials(),
@@ -80,14 +80,17 @@ func (a *App) Run(host string) {
 func (a *App) setRouters() {
 	a.Post("/api/clear", a.Clear)
 	a.Post("/api/start", a.Start)
+	a.Get("/api/users", a.GetUsers)
 	a.Post("/api/users/login", a.Login)
 	a.Post("/api/users/register", a.Register)
-	a.Post("/api/account", a.CreateAccount)
+	a.Get("/api/account", a.GetAccount)
+	a.Put("/api/account", a.SetAccount)
 	a.Post("/api/seeds", a.CreateSeed)
 	a.Get("/api/seeds", a.GetSeeds)
 	a.Post("/api/wallets", a.CreateWallet)
 	a.Put("/api/wallets/share/{wallet}", a.ShareWallet)
 	a.Get("/api/wallets", a.GetWallets)
+	a.Get("/api/wallet/{wallet}", a.GetWallet)
 	a.Get("/api/wallets/{asset}", a.GetWalletsForAsset)
 	a.Get("/api/wallet/orders/{wallet}", a.GetOrders)
 	a.Get("/api/wallet/rules/{wallet}", a.GetRules)
@@ -112,6 +115,10 @@ func (a *App) setRouters() {
 	a.Get("/api/firewall/{rule}", a.GetRule)
 }
 
+func (a *App) GetUsers(w http.ResponseWriter, r *http.Request) {
+	h.GetUsers(a.DB, w, r)
+}
+
 func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 	h.UserLogin(a.DB, w, r)
 }
@@ -123,8 +130,12 @@ func (a *App) Start(w http.ResponseWriter, r *http.Request) {
 	a.MasterPassword = h.Start(a.DB, w, r)
 }
 
-func (a *App) CreateAccount(w http.ResponseWriter, r *http.Request) {
-	h.CreateAccount(a.DB, w, r)
+func (a *App) SetAccount(w http.ResponseWriter, r *http.Request) {
+	h.SetAccount(a.DB, w, r)
+}
+
+func (a *App) GetAccount(w http.ResponseWriter, r *http.Request) {
+	h.GetAccount(a.DB, w, r)
 }
 
 func (a *App) Clear(w http.ResponseWriter, r *http.Request) {
@@ -160,6 +171,10 @@ func (a *App) CreateWallet(w http.ResponseWriter, r *http.Request) {
 func (a *App) ShareWallet(w http.ResponseWriter, r *http.Request) {
 	context.WithValue(r.Context(), "masterPassword", a.MasterPassword)
 	h.ShareWallet(a.DB, w, r)
+}
+
+func (a *App) GetWallet(w http.ResponseWriter, r *http.Request) {
+	h.GetWallet(a.DB, w, r)
 }
 
 func (a *App) GetWallets(w http.ResponseWriter, r *http.Request) {
@@ -203,7 +218,7 @@ func (a *App) CreateAddress(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) GetAddressList(w http.ResponseWriter, r *http.Request) {
-	h.GetAddress(a.DB, w, r)
+	h.GetAddresses(a.DB, w, r)
 }
 
 func (a *App) UpdateAddress(w http.ResponseWriter, r *http.Request) {

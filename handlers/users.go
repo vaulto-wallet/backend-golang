@@ -19,6 +19,32 @@ type AuthToken struct {
 	jwt.StandardClaims
 }
 
+func GetUsers(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
+	var accounts m.Accounts
+	var dbUsers m.Users
+	db.Preload("Account").Find(&dbUsers)
+
+	for _, u := range dbUsers {
+		accounts = append(accounts, m.Account{
+			Model: m.Model{ID: u.ID},
+			Name: func(name string, id string) string {
+				if len(name) > 0 {
+					return name
+				} else {
+					return id
+				}
+			}(u.Account.Name, u.Username),
+			Email:      "",
+			PublicKey:  u.Account.PublicKey,
+			PrivateKey: "",
+			OTPKey:     "",
+			OTPStatus:  u.Account.OTPStatus,
+		})
+	}
+
+	ReturnResult(w, accounts)
+}
+
 func UserLogin(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	var user m.User
 	var dbUser m.User

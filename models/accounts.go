@@ -2,7 +2,6 @@ package models
 
 import (
 	h "../helpers"
-	"github.com/jinzhu/gorm"
 	"github.com/xlzd/gotp"
 	"time"
 )
@@ -17,13 +16,16 @@ const (
 )
 
 type Account struct {
-	gorm.Model
-	Name       string    `json:"name"`
-	PublicKey  string    `json:"public_key"`
-	PrivateKey string    `json:"private_key"`
-	OTPKey     string    `json:"otp_key"`
-	OTPStatus  OTPStatus `json:"otp_type"`
+	Model
+	Name       string    `json:"name,omitempty"`
+	Email      string    `json:"email,omitempty"`
+	PublicKey  string    `json:"public_key,omitempty"`
+	PrivateKey string    `json:"private_key,omitempty"`
+	OTPKey     string    `json:"otp_key,omitempty"`
+	OTPStatus  OTPStatus `json:"otp_type,omitempty"`
 }
+
+type Accounts []Account
 
 func (a *Account) VerifyTOTP(totpCode string) bool {
 	if len(a.OTPKey) == 0 || a.OTPStatus != OTPStatusActive {

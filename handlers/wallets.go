@@ -78,12 +78,34 @@ func CreateWallet(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	ReturnResult(w, newWallet.ID)
 }
 
+func GetWallet(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
+	user := req.Context().Value("user").(*m.User)
+	vars := mux.Vars(req)
+
+	walletId, ok := vars["wallet"]
+	if !ok || walletId == "0" {
+		ReturnError(w, Error(BadRequest))
+		return
+	}
+
+	var dbWallet m.Wallet
+	db.Preload("FirewallRules").Preload("Coowners").Preload("Auditors").Preload("Seed", "owner_id = ?", user.ID).First(&dbWallet, walletId)
+	if dbWallet.ID == 0 {
+		ReturnError(w, Error(BadRequest))
+		return
+	}
+	ReturnResult(w, dbWallet)
+}
+
 func GetWallets(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	user := req.Context().Value("user").(*m.User)
 
 	var wallets []m.Wallet
 
 	db.Model(user).Preload("Coowners").Preload("Auditors").Related(&wallets, "Wallets")
+	db.Preload("Coowners").Preload("Auditors").Preload("Seed", "owner_id = ?", user.ID).Find(&wallets)
+
+	//db.Find(wallets, "")
 
 	ReturnResult(w, wallets)
 }

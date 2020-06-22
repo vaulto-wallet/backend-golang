@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/jinzhu/gorm"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -101,6 +100,21 @@ func (a *VaultoAPI) Register(username string, password string) (uint, error) {
 	}
 
 	return uint(response.Result.(float64)), nil
+}
+
+func (a *VaultoAPI) SetAccount(name string, email string) (bool, error) {
+	resp, err := a.Request("PUT", "/account", m.Account{Name: name, Email: email})
+	if err != nil {
+		return false, err
+	}
+	var response ResponseInterface
+	json.NewDecoder(strings.NewReader(string(resp))).Decode(&response)
+
+	if len(response.Error) > 0 {
+		return false, errors.New(response.ErrorText)
+	}
+
+	return response.Result.(bool), nil
 }
 
 func (a *VaultoAPI) CreateAsset(assetType m.AssetType, name string, symbol string, index int, decimals int, rounding int, token_address string) (uint, error) {
@@ -278,7 +292,7 @@ func (a *VaultoAPI) CreateAddress(name string, walletId uint) (uint, error) {
 
 func (a *VaultoAPI) UpdateAddress(address_id uint, address string, balance string, seqno uint64) (bool, error) {
 	resp, err := a.Request("PUT", "/address", m.Address{
-		Model:   gorm.Model{ID: address_id},
+		Model:   m.Model{ID: address_id},
 		Address: address,
 		Seqno:   seqno,
 	})
@@ -340,7 +354,7 @@ func (a *VaultoAPI) CreateOrder(walletId uint, addressTo string, amount float64,
 
 func (a *VaultoAPI) UpdateOrder(orderId uint, status m.OrderStatus) (bool, error) {
 	resp, err := a.Request("PUT", "/orders", m.Order{
-		Model:  gorm.Model{ID: orderId},
+		Model:  m.Model{ID: orderId},
 		Status: status,
 	})
 	if err != nil {
@@ -461,7 +475,7 @@ func (a *VaultoAPI) CreateTransaction(assetIds []uint, walletIds []uint, orderId
 func (a *VaultoAPI) UpdateTransaction(transactionId uint, status m.TransactionStatus, tx string, txHash string, txData string) (bool, error) {
 
 	resp, err := a.Request("PUT", "/transactions", m.Transaction{
-		Model:  gorm.Model{ID: transactionId},
+		Model:  m.Model{ID: transactionId},
 		Tx:     tx,
 		TxHash: txHash,
 		TxData: txData,

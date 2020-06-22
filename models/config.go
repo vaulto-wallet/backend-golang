@@ -6,7 +6,7 @@ import (
 )
 
 type ConfigRecord struct {
-	gorm.Model
+	Model
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }

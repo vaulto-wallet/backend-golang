@@ -1,7 +1,6 @@
 package models
 
 import (
-	"github.com/jinzhu/gorm"
 	"strings"
 )
 
@@ -51,7 +50,7 @@ func (direction TransactionDirection) String() string {
 }
 
 type Transaction struct {
-	gorm.Model
+	Model
 	Name      string
 	AssetId   []uint `gorm:"-"`
 	WalletId  []uint `gorm:"-"`

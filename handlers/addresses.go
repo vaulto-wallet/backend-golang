@@ -89,7 +89,7 @@ func CreateAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 
 }
 
-func GetAddress(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
+func GetAddresses(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	//user := req.Context().Value("user")
 
 	vars := mux.Vars(req)
