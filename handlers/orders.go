@@ -42,8 +42,30 @@ func CreateOrder(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		Comment:       r.Comment,
 		Status:        m.OrderStatusNew,
 	}
-
 	db.Create(&newOrder)
+
+	confirmation := m.Confirmation{
+		OrderId: newOrder.ID,
+		UserId:  user.ID,
+	}
+
+	_, confirmable, err := newOrder.FindRule(db, confirmation)
+	if err != nil {
+		db.Model(newOrder).Update(struct {
+			Status m.OrderStatus
+		}{m.OrderStatusRejected})
+		ReturnErrorWithStatusString(w, Error(BadRequest), http.StatusBadRequest, err.Error())
+		return
+	}
+	if !confirmable {
+		db.Model(newOrder).Update(struct {
+			Status m.OrderStatus
+		}{m.OrderStatusRejected})
+
+		ReturnErrorWithStatusString(w, Error(NotAuthorized), http.StatusForbidden, "No rules found")
+		return
+	}
+
 	ReturnResult(w, newOrder.ID)
 }
 

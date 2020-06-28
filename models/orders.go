@@ -18,6 +18,7 @@ const (
 	OrderStatusProcessing         = OrderStatus(3)
 	OrderStatusPartiallyProcessed = OrderStatus(4)
 	OrderStatusProcessed          = OrderStatus(5)
+	OrderStatusRejected           = OrderStatus(6)
 )
 
 func (a OrderStatus) String() string {
@@ -54,15 +55,15 @@ type Order struct {
 	WalletId      uint                `json:"wallet_id,omitempty"`
 	Comment       string              `json:"comment,omitempty"`
 	Destinations  []*OrderDestination `json:"destinations,omitempty"`
-	SubmittedById uint                `json:"-"`
+	SubmittedById uint                `json:"submitted_by"`
 	Status        OrderStatus         `json:"status,omitempty"`
 	Wallet        Wallet              `json:"wallet,omitempty"`
 	SubmittedBy   User                `json:"-"`
 	Asset         Asset               `json:"asset,omitempty"`
 	Transactions  []*Transaction      `json:"-" gorm:"many2many:transaction_orders;"`
 	Confirmations []*Confirmation     `json:"confirmations"`
-	RuleId        uint                `json:"rule_id,omitempty"`
-	Rule          FirewallRule        `json:"-"`
+	RuleId        uint                `json:"firewall_rule_id"`
+	Rule          FirewallRule        `json:"firewall_rule,omitempty"`
 }
 
 func (o *Order) Sum() (ret float64) {
@@ -120,7 +121,7 @@ func (o *Order) FindRule(db *gorm.DB, confirmation Confirmation) (*FirewallRule,
 		}
 
 		participantsList := new(ParticipantsList)
-		err := participantsList.Unmarshal(r.Participants)
+		err := participantsList.Unmarshal(r.ParticipantsString)
 		if err != nil {
 			continue
 		}

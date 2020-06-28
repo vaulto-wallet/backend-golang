@@ -61,10 +61,11 @@ func (o *ParticipantsList) Marshal() (string, error) {
 
 type FirewallRule struct {
 	Model
-	WalletId              uint                     `json:"wallet"`
-	Wallet                Wallet                   `json:"-"`
+	WalletId              uint                     `json:"wallet_id"`
+	Wallet                Wallet                   `json:"wallet"`
 	ParticipantsType      FirewallParticipantsType `json:"participant_type"`
-	Participants          string                   `json:"participants"`
+	ParticipantsString    string                   `json:"-"`
+	ParticipantIds        ParticipantsList         `json:"participants" gorm:"-"`
 	ConfirmationsRequired uint                     `json:"confirmations_required"`
 	AddressType           FirewallAddressType      `json:"address_type"`
 	Amount                float64                  `json:"amount"`
@@ -76,7 +77,7 @@ type FirewallRules []FirewallRule
 func (o *FirewallRules) AffectedUsers(wallet *Wallet) (ret []uint) {
 	for _, r := range []FirewallRule(*o) {
 		participantsList := new(ParticipantsList)
-		err := participantsList.Unmarshal(r.Participants)
+		err := participantsList.Unmarshal(r.ParticipantsString)
 		if err != nil {
 			continue
 		}

@@ -14,13 +14,13 @@ func CreateRule(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 
 	var r m.FirewallRule
 	err := json.NewDecoder(req.Body).Decode(&r)
-	if err != nil || r.AddressType == m.FirewallAddressTypeUnknown || r.ParticipantsType == m.FirewallParticipantsTypeUnknown || len(r.Participants) == 0 {
+	if err != nil || r.AddressType == m.FirewallAddressTypeUnknown || r.ParticipantsType == m.FirewallParticipantsTypeUnknown || len(r.ParticipantIds) == 0 {
 		ReturnError(w, Error(BadRequest))
 		return
 	}
 
 	dbWallet := new(m.Wallet)
-	db.Find(dbWallet, r.WalletId)
+	db.Preload("Seed").Find(dbWallet, r.WalletId)
 
 	if dbWallet.ID == 0 {
 		ReturnErrorWithStatusString(w, Error(BadRequest), http.StatusBadRequest, "Wallet not found")
@@ -32,6 +32,7 @@ func CreateRule(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	r.ParticipantsString, _ = r.ParticipantIds.Marshal()
 	db.Create(&r)
 	ReturnResult(w, r.ID)
 }
@@ -92,6 +93,15 @@ func GetRules(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 	}
 
 	db.Model(&dbWallet).Related(&rules)
+	for _, v := range rules {
+		participantsList := new(m.ParticipantsList)
+
+		err := participantsList.Unmarshal(v.ParticipantsString)
+		if err != nil {
+			continue
+		}
+		v.ParticipantIds = *participantsList
+	}
 
 	ReturnResult(w, rules)
 }

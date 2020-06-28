@@ -4,10 +4,10 @@ import "github.com/jinzhu/gorm"
 
 type Seed struct {
 	Model
-	Name    string
-	Seed    string
-	OwnerId uint
-	Owner   *User
+	Name    string `json:"name"`
+	Seed    string `json:"seed"`
+	OwnerId uint   `json:"owner_id"`
+	Owner   *User  `json:"owner"`
 }
 
 //Owner   User `gorm:"foreignkey:OwnerId, association_foreignkey:ID"`

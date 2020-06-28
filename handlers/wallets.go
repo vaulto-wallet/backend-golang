@@ -67,7 +67,7 @@ func CreateWallet(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		WalletId:              newWallet.ID,
 		Wallet:                newWallet,
 		ParticipantsType:      m.FirewallParticipantsTypeUsers,
-		Participants:          participantsList,
+		ParticipantsString:    participantsList,
 		ConfirmationsRequired: 1,
 		AddressType:           m.FirewallAddressTypeExternal,
 		Amount:                0,
@@ -94,6 +94,17 @@ func GetWallet(db *gorm.DB, w http.ResponseWriter, req *http.Request) {
 		ReturnError(w, Error(BadRequest))
 		return
 	}
+
+	for _, v := range dbWallet.FirewallRules {
+		participantsList := new(m.ParticipantsList)
+
+		err := participantsList.Unmarshal(v.ParticipantsString)
+		if err != nil {
+			continue
+		}
+		v.ParticipantIds = *participantsList
+	}
+
 	ReturnResult(w, dbWallet)
 }
 
